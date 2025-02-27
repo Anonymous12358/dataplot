@@ -1,11 +1,21 @@
 {
     "name": "dataplot",
-    "authors": ["Just Jem Bennett for now"],
     "dependencies": {
-	"core": "*",
-	"flashlog": "*"
+        "core": "*",
+        "flashlog": "*"
     },
     "files": [
-	"dataplot.ts"
+        "dataplot.ts"
+    ],
+    "targetVersions": {
+        "target": "7.0.57",
+        "targetId": "microbit"
+    },
+    "supportedTargets": [
+        "microbit"
+    ],
+    "preferredEditor": "tsprj",
+    "authors": [
+        "Just Jem Bennett for now"
     ]
 }

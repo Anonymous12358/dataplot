@@ -20,11 +20,17 @@ namespace dataplot {
     }
 
     //% blockId=create_series
-    //% block="series $heading colored $color"
+    //% block="series $heading coloured $color"
     //% blockHidden=true
     //% color.shadow="colorNumberPicker"
     export function create_series(heading: string, color: number): Series {
         return new Series(heading, color);
+    }
+
+    //% blockId=dataplot_rgb
+    //% block="red $red green $green blue $blue"
+    export function rgb(red: number, green: number, blue: number): number {
+        return (red << 16) + (green << 8) + blue;
     }
 
     //% bockId=add_plot
@@ -40,6 +46,7 @@ namespace dataplot {
     //% series8.shadow=create_series
     //% series9.shadow=create_series
     //% series10.shadow=create_series
+    //% weight=100
     export function add_plot(
         graph_type: string, title: string,
         series1: Series, series2?: Series, series3?: Series, series4?: Series, series5?: Series,
@@ -52,12 +59,16 @@ namespace dataplot {
     }
 
     function add_plot_array(graph_type: string, title: string, seriess: Series[]) {
-        let toLog : string = graph_type + "$$" + title + "$$";
+        let toLog : string = graph_type + "|" + escape(title);
         for (const series of seriess) {
-            toLog += series.heading + "$$" + series.color + "$$";
+            toLog += "|" + escape(series.heading) + "|" + series.color;
         }
         flashlog.beginRow();
-        flashlog.logData("$$plots", toLog);
+        flashlog.logData("||plots", toLog);
         flashlog.endRow();
+    }
+
+    function escape(s: string) {
+        return s.replace("\\", "\\\\").replace("|", "\|").replace(",", "\,");
     }
 }
