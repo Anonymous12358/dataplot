@@ -2,7 +2,8 @@
     "name": "dataplot",
     "dependencies": {
         "core": "*",
-        "flashlog": "*"
+        "flashlog": "*",
+        "datalogger": "*"
     },
     "files": [
         "dataplot.ts"

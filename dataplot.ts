@@ -22,6 +22,8 @@ namespace dataplot {
     //% blockId=create_series
     //% block="series $heading coloured $color"
     //% blockHidden=true
+    //% heading.fieldEditor="autocomplete" heading.fieldOptions.decompileLiterals=true
+    //% heading.fieldOptions.key="dataloggercolumn"
     //% color.shadow="colorNumberPicker"
     export function create_series(heading: string, color: number): Series {
         return new Series(heading, color);
