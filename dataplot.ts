@@ -1,5 +1,11 @@
 //% color="#AA278D"
 namespace dataplot {
+    //TODO: I believe block ids should be globally unique
+    //TODO: Use an enum for output mode
+    //TODO: More output modes?
+    //TODO: Docstrings
+    let outputMode = "log";
+
     //% shim=TD_ID
     //% blockId=graph_type_field
     //% block="$graph_type"
@@ -22,8 +28,7 @@ namespace dataplot {
     //% blockId=create_series
     //% block="series $heading coloured $color"
     //% blockHidden=true
-    //% heading.fieldEditor="autocomplete" heading.fieldOptions.decompileLiterals=true
-    //% heading.fieldOptions.key="dataloggercolumn"
+    //% heading.shadow=datalogger_columnfield
     //% color.shadow="colorNumberPicker"
     export function create_series(heading: string, color: number): Series {
         return new Series(heading, color);
@@ -60,14 +65,33 @@ namespace dataplot {
             ].filter((e: any) => !!e));
     }
 
+    //% blockId=set_output_mode
+    //% block="Output via bluetooth $mode"
+    //% mode.shadow="toggleOnOff"
+    export function set_output_mode(mode: boolean) {
+        if (mode) {
+            outputMode = "bluetooth";
+        } else {
+            outputMode = "log";
+        }
+    }
+
     function add_plot_array(graph_type: string, title: string, seriess: Series[]) {
         let toLog : string = graph_type + "|" + escape(title);
         for (const series of seriess) {
             toLog += "|" + escape(series.heading) + "|" + series.color;
         }
-        flashlog.beginRow();
-        flashlog.logData("||plots", toLog);
-        flashlog.endRow();
+        outputData(toLog);
+    }
+
+    function outputData(data: string) {
+        if (outputMode === "log") {
+            flashlog.beginRow();
+            flashlog.logData("||plots", data);
+            flashlog.endRow();
+        } else if (outputMode === "bluetooth") {
+            bluetooth.uartWriteString("||plots:" + data);
+        }
     }
 
     function escape(s: string) {

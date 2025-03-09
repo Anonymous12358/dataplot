@@ -3,7 +3,8 @@
     "dependencies": {
         "core": "*",
         "flashlog": "*",
-        "datalogger": "*"
+        "datalogger": "*",
+        "bluetooth": "*"
     },
     "files": [
         "dataplot.ts"
