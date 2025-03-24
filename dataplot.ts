@@ -4,7 +4,7 @@ namespace dataplot {
     //TODO: Use an enum for output mode
     //TODO: More output modes?
     //TODO: Docstrings
-    let outputMode = "log";
+    let outputMode = "serial";
 
     //% shim=TD_ID
     //% blockId=graph_type_field
@@ -142,7 +142,7 @@ namespace dataplot {
         if (mode) {
             outputMode = "bluetooth";
         } else {
-            outputMode = "log";
+            outputMode = "serial";
         }
     }
 
