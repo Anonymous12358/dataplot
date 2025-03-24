@@ -18,20 +18,89 @@ namespace dataplot {
         return graph_type
     }
 
-    export class Series {
+    export class AxisSettings {
         constructor(
-            public heading: string,
-            public color: number
-        ) {}
+            public label: string,
+            public min?: number,
+            public max?: number
+        ) { }
     }
 
-    //% blockId=create_series
-    //% block="series $heading coloured $color"
+    //% blockId=axis_settings_field
+    //% block="label $label||ranging from $min to $max"
     //% blockHidden=true
-    //% heading.shadow=datalogger_columnfield
+    export function _axis_settings(label: string, min?: number, max?: number) {
+        return new AxisSettings(label, min, max);
+    }
+
+    export class GraphSettings {
+        constructor(
+            public title: string,
+            public x_axis?: AxisSettings,
+            public y_axis?: AxisSettings
+        ) { }
+    }
+
+    //% blockId=graph_settings_field
+    //% block="named $title||with x axis $x_axis|and y axis $y_axis"
+    //% blockHidden=false
+    //% x_axis.shadow=axis_settings_field
+    //% y_axis.shadow=axis_settings_field
+    //% expandableArgumentMode=toggle
+    export function _graph_settings(title: string, x_axis?: AxisSettings, y_axis?: AxisSettings) {
+        return new GraphSettings(title, x_axis, y_axis);
+    }
+
+    export class Series {
+        constructor(
+            public column_name: string,
+            public color: number,
+            public display_name?: string,
+            public icon?: string
+        ) { }
+    }
+
+    enum Icon {
+        //% block="cross"
+        Cross,
+        //% block="plus"
+        Plus,
+        //% block="zhe"
+        Zhe,  // Looks like the cyrillic letter zhe
+        //% block="circle"
+        Circle,
+        //% block="diamond"
+        Diamond,
+        //% block="rectangle"
+        Rectangle,
+        //% block="triangle"
+        Triangle
+    }
+
+    //% blockId=icon_field
+    //% block="$icon"
+    export function _icon(icon: Icon): string {
+        switch (icon) {
+            case Icon.Cross: return "cross";
+            case Icon.Plus: return "plus";
+            case Icon.Zhe: return "zhe";
+            case Icon.Circle: return "circle";
+            case Icon.Diamond: return "diamond";
+            case Icon.Rectangle: return "rectangle";
+            case Icon.Triangle: return "triangle";
+        }
+    }
+
+    //% blockId=series_field
+    //% block="series $column_name coloured $color||with heading $display_name and icon $icon"
+    //% blockHidden=true
+    //% column_name.shadow=datalogger_columnfield
     //% color.shadow="colorNumberPicker"
-    export function create_series(heading: string, color: number): Series {
-        return new Series(heading, color);
+    //% icon.shadow=icon_field
+    //% expandableArgumentMode=toggle
+    //% inlineInputMode=inline
+    export function _series(column_name: string, color: number, display_name?: string, icon?: string): Series {
+        return new Series(column_name, color, display_name, icon);
     }
 
     //% blockId=dataplot_rgb
@@ -41,28 +110,29 @@ namespace dataplot {
     }
 
     //% bockId=add_plot
-    //% block="Add $graph_type|plot named $title|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
+    //% block="Add $graph_type|plot $graph_settings|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
     //% graph_type.shadow=graph_type_field
-    //% series1.shadow=create_series
-    //% series2.shadow=create_series
-    //% series3.shadow=create_series
-    //% series4.shadow=create_series
-    //% series5.shadow=create_series
-    //% series6.shadow=create_series
-    //% series7.shadow=create_series
-    //% series8.shadow=create_series
-    //% series9.shadow=create_series
-    //% series10.shadow=create_series
+    //% graph_settings.shadow=graph_settings_field
+    //% series1.shadow=series_field
+    //% series2.shadow=series_field
+    //% series3.shadow=series_field
+    //% series4.shadow=series_field
+    //% series5.shadow=series_field
+    //% series6.shadow=series_field
+    //% series7.shadow=series_field
+    //% series8.shadow=series_field
+    //% series9.shadow=series_field
+    //% series10.shadow=series_field
     //% weight=100
     export function add_plot(
-        graph_type: string, title: string,
+        graph_type: string, graph_settings: GraphSettings,
         series1: Series, series2?: Series, series3?: Series, series4?: Series, series5?: Series,
         series6?: Series, series7?: Series, series8?: Series, series9?: Series, series10?: Series
-        ) {
-            add_plot_array(graph_type, title, [
-                series1, series2, series3, series4, series5,
-                series6, series7, series8, series9, series10
-            ].filter((e: any) => !!e));
+    ) {
+        add_plot_array(graph_type, graph_settings, [
+            series1, series2, series3, series4, series5,
+            series6, series7, series8, series9, series10
+        ].filter((e: any) => !!e));
     }
 
     //% blockId=set_output_mode
@@ -76,25 +146,31 @@ namespace dataplot {
         }
     }
 
-    function add_plot_array(graph_type: string, title: string, seriess: Series[]) {
-        let toLog : string = graph_type + "|" + escape(title);
-        for (const series of seriess) {
-            toLog += "|" + escape(series.heading) + "|" + series.color;
-        }
-        outputData(toLog);
+    function add_plot_array(graph_type: string, graph_settings: GraphSettings, seriess: Series[]) {
+        outputData(construct_graph_json(graph_type, graph_settings, seriess));
+    }
+
+    function construct_graph_json(graph_type: string, graph_settings: GraphSettings, seriess: Series[]) {
+        return JSON.stringify({
+            "type": "config",
+            "graphType": graph_type,
+            "title": graph_settings.title,
+            "x": graph_settings.x_axis,
+            "y": graph_settings.y_axis,
+            "series": seriess.map((series) => ({
+                "name": series.column_name,
+                "color": series.color,
+                "icon": series.icon || "cross",
+                "displayName": series.display_name || series.column_name
+            }))
+        });
     }
 
     function outputData(data: string) {
-        if (outputMode === "log") {
-            flashlog.beginRow();
-            flashlog.logData("||plots", data);
-            flashlog.endRow();
+        if (outputMode === "serial") {
+            serial.writeLine(data);
         } else if (outputMode === "bluetooth") {
             bluetooth.uartWriteString("||plots:" + data);
         }
-    }
-
-    function escape(s: string) {
-        return s.replace("\\", "\\\\").replace("|", "\|").replace(",", "\,");
     }
 }
