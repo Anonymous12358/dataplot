@@ -1,3 +1,20 @@
+enum Icon {
+    //% block="cross"
+    Cross,
+    //% block="plus"
+    Plus,
+    //% block="zhe"
+    Zhe,  // Looks like the cyrillic letter zhe
+    //% block="circle"
+    Circle,
+    //% block="diamond"
+    Diamond,
+    //% block="rectangle"
+    Rectangle,
+    //% block="triangle"
+    Triangle
+}
+
 //% color="#AA278D"
 namespace dataplot {
     //TODO: I believe block ids should be globally unique
@@ -35,6 +52,7 @@ namespace dataplot {
     //% blockId=axis_settings_field
     //% block="label $label||ranging from $min to $max"
     //% blockHidden=true
+    //% expandableArgumentMode=toggle
     export function _axis_settings(label: string, min?: number, max?: number) {
         return new AxisSettings(label, min, max);
     }
@@ -49,7 +67,7 @@ namespace dataplot {
 
     //% blockId=graph_settings_field
     //% block="named $title||with x axis $x_axis|and y axis $y_axis"
-    //% blockHidden=false
+    //% blockHidden=true
     //% x_axis.shadow=axis_settings_field
     //% y_axis.shadow=axis_settings_field
     //% expandableArgumentMode=toggle
@@ -59,7 +77,7 @@ namespace dataplot {
 
     //% blockId=graph_settings_field_no_x
     //% block="named $title||with y axis $y_axis"
-    //% blockHidden=false
+    //% blockHidden=true
     //% x_axis.shadow=axis_settings_field
     //% y_axis.shadow=axis_settings_field
     //% expandableArgumentMode=toggle
@@ -69,7 +87,7 @@ namespace dataplot {
 
     //% blockId=graph_settings_field_no_axes
     //% block="named $title"
-    //% blockHidden=false
+    //% blockHidden=true
     //% x_axis.shadow=axis_settings_field
     //% y_axis.shadow=axis_settings_field
     //% expandableArgumentMode=toggle
@@ -85,23 +103,6 @@ namespace dataplot {
             public display_name?: string,
             public icon?: string
         ) { }
-    }
-
-    enum Icon {
-        //% block="cross"
-        Cross,
-        //% block="plus"
-        Plus,
-        //% block="zhe"
-        Zhe,  // Looks like the cyrillic letter zhe
-        //% block="circle"
-        Circle,
-        //% block="diamond"
-        Diamond,
-        //% block="rectangle"
-        Rectangle,
-        //% block="triangle"
-        Triangle
     }
 
     //% blockId=icon_field
