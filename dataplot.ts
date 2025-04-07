@@ -1,100 +1,357 @@
+/**
+ * Send plotting data to flash storage
+ * Follows the same structure seen in datalogger
+ * Currently just uses the blocks as a template,
+ * so no data is sent
+ */
+//% block="Data Plotter"
 //% color="#AA278D"
+//% icon="\uf080"
+//% groups=["Plotting", "Axis Options", "Series Options", "others"] // Not working?
 namespace dataplot {
-    //TODO: I believe block ids should be globally unique
-    //TODO: Use an enum for output mode
     //TODO: More output modes?
     //TODO: Docstrings
-    let outputMode = "log";
 
-    //% shim=TD_ID
-    //% blockId=graph_type_field
-    //% block="$graph_type"
-    //% blockHidden=true
-    //% graph_type.fieldEditor="textdropdown"
-    //% graph_type.fieldOptions.decompileLiterals=true
-    //% graph_type.fieldOptions.values="line, scatter, bar, histogram, pie"
-    //% graph_type.defl="line"
-    export function _graph_type_field(graph_type: string): string {
-        return graph_type
+    export enum OutputMode {
+        //% block="serial"
+        Serial,
+        //% block="bluetooth"
+        Bluetooth
+    }
+
+    let outputMode: OutputMode = OutputMode.Serial
+
+    // Plots and Series ---------------------------
+    
+    /**
+     * A single graph of any type
+     * Graphs are uniquely identified by their title
+     */
+    export class Plot {
+        constructor(
+            public title: string,
+            public options: PlotOption[]
+        ) {}
+    }
+
+    export class BarPlot extends Plot {
+        constructor(
+            title: string,
+            options: PlotOption[],
+            public series?: Series[]
+        ) { super(title, options) }
+    }
+
+    //% block="add bar plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
+    //% blockId=dataplotaddbarplot
+    //% group="Plotting"
+    //% inlineInputMode="external"
+    //% plot.shadow=dataplotcreatebarplot
+    //% s1.shadow=dataplotcreateseries
+    //% s2.shadow=dataplotcreateseries
+    //% s3.shadow=dataplotcreateseries
+    //% s4.shadow=dataplotcreateseries
+    //% s5.shadow=dataplotcreateseries
+    //% weight=95
+    export function addBarPlot(
+        plot: BarPlot,
+        s1: Series,
+        s2?: Series,
+        s3?: Series,
+        s4?: Series,
+        s5?: Series): void {
+        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s)
+    }
+
+    export class LinePlot extends Plot {
+        constructor(
+            title: string,
+            options: PlotOption[],
+            public series?: Series[]
+        ) { super(title, options) }
+    }
+
+    //% block="add line plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
+    //% blockId=dataplotaddlineplot
+    //% group="Plotting"
+    //% inlineInputMode="external"
+    //% plot.shadow=dataplotcreatelineplot
+    //% s1.shadow=dataplotcreateseries
+    //% s2.shadow=dataplotcreateseries
+    //% s3.shadow=dataplotcreateseries
+    //% s4.shadow=dataplotcreateseries
+    //% s5.shadow=dataplotcreateseries
+    //% weight=96
+    export function addLinePlot(
+        plot: LinePlot,
+        s1: Series,
+        s2?: Series,
+        s3?: Series,
+        s4?: Series,
+        s5?: Series): void {
+        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s)
     }
 
     export class Series {
         constructor(
-            public heading: string,
-            public color: number
+            public name: string,
+            public options: SeriesOption[]
         ) {}
     }
 
-    //% blockId=create_series
-    //% block="series $heading coloured $color"
+    /** 
+     * Expect titles to be unique
+     */
+    export class Option {
+        constructor(
+            public name: string,
+            public value: any,
+        ) {}
+
+        public apply(): String {
+            return "{" + this.name + ": " + this.value + "}" 
+        }
+    }
+
+    // Plot Options -------------------------------
+
+    export class PlotOption {
+        constructor(
+            public name: string,
+            public value: any,
+        ) { }
+    }
+
+    export class BarOption{
+        constructor(
+            public name: string,
+            public value: any,
+        ) {  }
+    }
+
+    export class LineOption extends PlotOption {
+        constructor(
+            public name: string,
+            public value: any,
+        ) { super(name, value) }
+    }
+
+    export class AxisOption extends (BarOption) {
+        constructor(
+            public name: string,
+            public value: any,
+        ) { super(name, value) }
+    }
+
+    export class XOption extends AxisOption {
+        constructor(
+            public name: string,
+            public value: any,
+        ) { super(name, value) }
+    }
+
+    export class YOption extends AxisOption {
+        constructor(
+            public name: string,
+            public value: any,
+        ) { super(name, value) }
+    }
+
+    export class XMinOption extends XOption {
+        constructor(public value: number) { super("X min", value) }
+    }
+
+    //% block="X min $value"
+    //% blockId=dataplotcreatexminoption
+    //% group="Axis Options"
+    export function createMinXOption(value: number): XMinOption {
+        return new XMinOption(value)
+    }
+
+    export class XMaxOption extends XOption {
+        constructor(value: number) { super("X max", value) }
+    }
+
+    //% block="X max $value"
+    //% blockId=dataplotcreatexmaxoption
+    //% group="Axis Options"
+    export function createMaxXOption(value: number): XMaxOption {
+        return new XMaxOption(value)
+    }
+
+    export class XLabelOption extends XOption {
+        constructor(public value: string) { super("X label", value) }
+    }
+
+    //% block="X label $value"
+    //% blockId=dataplotcreatexlabeloption
+    //% group="Axis Options"
+    export function createXLabelOption(value: string): XLabelOption {
+        return new XLabelOption(value)
+    }
+
+    export class YMinOption extends YOption {
+        constructor(value: number) { super("Y min", value) }
+    }
+
+    //% block="Y min $value"
+    //% blockId=dataplotcreateyminoption
+    //% group="Axis Options"
+    export function createYMinOption(value: number): YMinOption {
+        return new YMinOption(value)
+    }
+
+    export class YMaxOption extends YOption {
+        constructor(value: number) { super("Y max", value) }
+    }
+
+    //% block="Y max $value"
+    //% blockId=dataplotcreateymaxoption
+    //% group="Axis Options"
+    export function createMaxYOption(value: number): YMaxOption {
+        return new YMaxOption(value)
+    }
+
+    export class YLabelOption extends XOption {
+        constructor(public value: string) { super("Y label", value) }
+    }
+
+    //% block="Y label $value"
+    //% blockId=dataplotcreateylabeloption
+    //% group="Axis Options"
+    export function createYLabelOption(value: string): YLabelOption {
+        return new YLabelOption(value)
+    }
+
+    // Series Options -----------------------------
+
+    export class SeriesOption extends Option {
+        constructor(
+            public name: string,
+            public value: any,
+        ) { super(name, value) }
+    }
+
+    //% block="bar plot $title||options $op1 $op2 $op3 $op4 $op5 $op6 $op7 $op8 $op9 $op10"
+    //% blockId=dataplotcreatebarplot
     //% blockHidden=true
-    //% heading.shadow=datalogger_columnfield
-    //% color.shadow="colorNumberPicker"
-    export function create_series(heading: string, color: number): Series {
-        return new Series(heading, color);
+    //% inlineInputMode="variable"
+    //% inlineInputModeLimit=1
+    //% group="Plotting"
+    export function createBarPlot(
+        title: string,
+        op1?: BarOption,
+        op2?: BarOption,
+        op3?: BarOption,
+        op4?: BarOption,
+        op5?: BarOption,
+        op6?: BarOption,
+        op7?: BarOption,
+        op8?: BarOption,
+        op9?: BarOption,
+        op10?: BarOption
+    ): BarPlot {
+        return new BarPlot(title,
+            [
+                op1,
+                op2,
+                op3,
+                op4,
+                op5,
+                op6,
+                op7,
+                op8,
+                op9,
+                op10,
+            ].filter(op => !!op)
+        );
     }
 
-    //% blockId=dataplot_rgb
-    //% block="red $red green $green blue $blue"
-    export function rgb(red: number, green: number, blue: number): number {
-        return (red << 16) + (green << 8) + blue;
+    //% block="line plot $title||options $op1 $op2 $op3 $op4 $op5 $op6 $op7 $op8 $op9 $op10"
+    //% blockId=dataplotcreatelineplot
+    //% blockHidden=true
+    //% inlineInputMode="variable"
+    //% inlineInputModeLimit=1
+    //% group="Plotting"
+    export function createLinePlot(
+        title: string,
+        op1?: LineOption,
+        op2?: LineOption,
+        op3?: LineOption,
+        op4?: LineOption,
+        op5?: LineOption,
+        op6?: LineOption,
+        op7?: LineOption,
+        op8?: LineOption,
+        op9?: LineOption,
+        op10?: LineOption
+    ): LinePlot {
+        return new LinePlot(title,
+            [
+                op1,
+                op2,
+                op3,
+                op4,
+                op5,
+                op6,
+                op7,
+                op8,
+                op9,
+                op10,
+            ].filter(op => !!op)
+        );
     }
 
-    //% bockId=add_plot
-    //% block="Add $graph_type|plot named $title|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
-    //% graph_type.shadow=graph_type_field
-    //% series1.shadow=create_series
-    //% series2.shadow=create_series
-    //% series3.shadow=create_series
-    //% series4.shadow=create_series
-    //% series5.shadow=create_series
-    //% series6.shadow=create_series
-    //% series7.shadow=create_series
-    //% series8.shadow=create_series
-    //% series9.shadow=create_series
-    //% series10.shadow=create_series
-    //% weight=100
-    export function add_plot(
-        graph_type: string, title: string,
-        series1: Series, series2?: Series, series3?: Series, series4?: Series, series5?: Series,
-        series6?: Series, series7?: Series, series8?: Series, series9?: Series, series10?: Series
-        ) {
-            add_plot_array(graph_type, title, [
-                series1, series2, series3, series4, series5,
-                series6, series7, series8, series9, series10
-            ].filter((e: any) => !!e));
+    //% block="series $title||options $op1 $op2 $op3 $op4 $op5 $op6 $op7 $op8 $op9 $op10"
+    //% blockId=dataplotcreateseries
+    //% blockHidden=true
+    //% inlineInputMode="variable"
+    //% inlineInputModeLimit=1
+    //% group="Plotting"
+    export function createSeries(
+        title: string,
+        op1?: SeriesOption,
+        op2?: SeriesOption,
+        op3?: SeriesOption,
+        op4?: SeriesOption,
+        op5?: SeriesOption,
+        op6?: SeriesOption,
+        op7?: SeriesOption,
+        op8?: SeriesOption,
+        op9?: SeriesOption,
+        op10?: SeriesOption
+    ): Series {
+        return new Series(title,
+            [
+                op1,
+                op2,
+                op3,
+                op4,
+                op5,
+                op6,
+                op7,
+                op8,
+                op9,
+                op10,
+            ].filter(op => !!op)
+        );
     }
 
-    //% blockId=set_output_mode
-    //% block="Output via bluetooth $mode"
-    //% mode.shadow="toggleOnOff"
-    export function set_output_mode(mode: boolean) {
-        if (mode) {
-            outputMode = "bluetooth";
-        } else {
-            outputMode = "log";
-        }
+    //% block="set output mode $mode"
+    //% blockId=dataplotsetoutputmode
+    //% group="Plotting"
+    //% weight=90
+    export function setOutputMode(mode: OutputMode) {
+        outputMode = mode;
     }
 
-    function add_plot_array(graph_type: string, title: string, seriess: Series[]) {
-        let toLog : string = graph_type + "|" + escape(title);
-        for (const series of seriess) {
-            toLog += "|" + escape(series.heading) + "|" + series.color;
-        }
-        outputData(toLog);
-    }
+    export class Test {constructor(public name:string) {}}
 
-    function outputData(data: string) {
-        if (outputMode === "log") {
-            flashlog.beginRow();
-            flashlog.logData("||plots", data);
-            flashlog.endRow();
-        } else if (outputMode === "bluetooth") {
-            bluetooth.uartWriteString("||plots:" + data);
-        }
-    }
-
-    function escape(s: string) {
-        return s.replace("\\", "\\\\").replace("|", "\|").replace(",", "\,");
+    //% block="make test $value"
+    //% blockId=testtest
+    //% group="Plotting"
+    //% weight=0
+    export function test(value: string): Test {
+        return new Test(value);
     }
 }
