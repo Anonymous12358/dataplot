@@ -122,7 +122,7 @@ namespace dataplot {
         ) { super(name, value) }
     }
 
-    export class BarOption extends Option {
+    export class BarOption extends PlotOption {
         constructor(
             name: string,
             value: any,
