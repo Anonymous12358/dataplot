@@ -115,18 +115,18 @@ namespace dataplot {
 
     // Plot Options -------------------------------
 
-    export class PlotOption {
+    export class PlotOption extends Option {
         constructor(
-            public name: string,
-            public value: any,
-        ) { }
+            name: string,
+            value: any,
+        ) { super(name, value) }
     }
 
-    export class BarOption{
+    export class BarOption extends Option {
         constructor(
-            public name: string,
-            public value: any,
-        ) {  }
+            name: string,
+            value: any,
+        ) { super(name, value) }
     }
 
     export class LineOption extends PlotOption {
