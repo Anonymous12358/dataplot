@@ -1,17 +1,17 @@
 enum Icon {
-    //% block="cross"
+    //% block="cross X"
     Cross,
-    //% block="plus"
+    //% block="plus +"
     Plus,
-    //% block="zhe"
-    Zhe,  // Looks like the cyrillic letter zhe
-    //% block="circle"
+    //% block="zhe Ж"
+    Zhe,
+    //% block="circle ●"
     Circle,
-    //% block="diamond"
+    //% block="diamond ⧫"
     Diamond,
-    //% block="rectangle"
+    //% block="rectangle ▮"
     Rectangle,
-    //% block="triangle"
+    //% block="triangle ▲"
     Triangle
 }
 
@@ -19,8 +19,6 @@ enum Icon {
 namespace dataplot {
     //TODO: I believe block ids should be globally unique
     //TODO: Use an enum for output mode
-    //TODO: More output modes?
-    //TODO: Docstrings
     let outputMode = "serial";
 
     //% blockId=time_column_name
@@ -107,6 +105,7 @@ namespace dataplot {
 
     //% blockId=icon_field
     //% block="$icon"
+    // blockHidden=true
     export function _icon(icon: Icon): string {
         switch (icon) {
             case Icon.Cross: return "cross";
@@ -157,13 +156,28 @@ namespace dataplot {
         return new Series(undefined, y_column, color, display_name);
     }
 
+    /**
+     * Specify a colour through its red, green, and blue values
+     * This extension is not intended for colour processing: the block is provided only as a primitive way to specify colours beyond the default sixteen
+     * @param red Intensity of red light
+     * @param green Intensity of green light
+     * @param blue Intensity of blue light
+     * @returns The colour as a single RGB integer value
+     */
     //% blockId=dataplot_rgb
     //% block="red $red green $green blue $blue"
     export function rgb(red: number, green: number, blue: number): number {
         return (red << 16) + (green << 8) + blue;
     }
 
-    //% bockId=add_plot_scatter_line
+    /**
+     * Add a line or scatter plot to the display
+     * @param graph_type Either "line" to draw a line from point to point, or "scatter" to not draw it
+     * @param graph_settings A GraphSettings object with the title to display above the plot and optional configuration for the x and y axes
+     * @param series1 A Series object with columns to read data from, a colour for the points and line plotted, and optionally, a name for the series and an icon to use for each point
+     * @param series2 Up to 10 total series
+     */
+    //% blockId=add_plot_scatter_line
     //% block="Add $graph_type|plot $graph_settings|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
     //% graph_type.shadow=graph_type_field
     //% graph_settings.shadow=graph_settings_field
@@ -189,6 +203,12 @@ namespace dataplot {
         ].filter((e: any) => !!e));
     }
 
+    /**
+     * Add a histogram to the display
+     * Each bar has a height determined by its y value, and stretches horizontally from the end of the previous bar (or minimum x value) to its x value
+     * @param graph_settings A GraphSettings object with the title to display above the plot and optional configuration for the x and y axes
+     * @param series1 A single Series object with columns from which to read data, a colour for the bars plotted, and optionally, a name for the series. Icons cannot be specified through the blocks interface and are ignored if specified otherwise.
+     */
     //% bockId=add_plot_histogram
     //% block="Add histogram plot $graph_settings|with series $series1"
     //% graph_settings.shadow=graph_settings_field
@@ -203,6 +223,13 @@ namespace dataplot {
         ].filter((e: any) => !!e));
     }
 
+    /**
+     * Add a bar chart to the display
+     * Each bar is a series, with height determined by its y value
+     * @param graph_settings A GraphSettings object with the title to display above the plot and optional configuration for the y axis. X axis configuration cannot be specified through the blocks interface and is ignored if specified otherwise
+     * @param series1 A Series object with a column from which to read the y data, a colour for the bar plotted, and optionally, a name for the series. Icon and x column cannot be specified through the blocks interface and are ignored if specified otherwise.
+     * @param series2 Up to 10 total series
+     */
     //% bockId=add_plot_bar
     //% block="Add bar chart $graph_settings|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
     //% graph_settings.shadow=graph_settings_field_no_x
@@ -228,6 +255,13 @@ namespace dataplot {
         ].filter((e: any) => !!e));
     }
 
+    /**
+     * Add a pie chart to the display
+     * Each sector is a series, with arc length determined by its y value
+     * @param graph_settings A GraphSettings object with the title to display above the plot. X axis configuration cannot be specified through the blocks interface and is ignored if specified otherwise
+     * @param series1 A Series object with a column from which to read the y data, a colour for the sector plotted, and optionally, a name for the series. Icon and x column cannot be specified through the blocks interface and are ignored if specified otherwise.
+     * @param series2 Up to 10 total series
+     */
     //% bockId=add_plot_pie
     //% block="Add pie chart $graph_settings|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
     //% graph_settings.shadow=graph_settings_field_no_axes
@@ -253,6 +287,10 @@ namespace dataplot {
         ].filter((e: any) => !!e));
     }
 
+    /**
+         * Set whether to output graph config and data by bluetooth or serial
+         * @param mode true to output by bluetooth, false to output by serial
+         */
     //% blockId=set_output_mode
     //% block="Output via bluetooth $mode"
     //% mode.shadow="toggleOnOff"
@@ -289,7 +327,7 @@ namespace dataplot {
         if (outputMode === "serial") {
             serial.writeLine(data);
         } else if (outputMode === "bluetooth") {
-            bluetooth.uartWriteString("||plots:" + data);
+            bluetooth.uartWriteString(data);
         }
     }
 }
