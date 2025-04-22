@@ -7,7 +7,7 @@
 //% block="Data Plotter"
 //% color="#AA278D"
 //% icon="\uf080"
-//% groups=["Plotting", "Axis Options", "Series Options", "others"] // Not working?
+//% groups=["Plotting", "others"] // Not working?
 namespace dataplot {
     //TODO: More output modes?
     //TODO: Docstrings
@@ -21,25 +21,57 @@ namespace dataplot {
 
     let outputMode: OutputMode = OutputMode.Serial
 
-    // Plots and Series ---------------------------
+    // Plots and Series base classes ----------------
     
     /**
      * A single graph of any type
      * Graphs are uniquely identified by their title
      */
-    export class Plot {
+
+    // Stores axis data
+    export class AxisOptions {
         constructor(
-            public title: string,
-            public options: PlotOption[]
-        ) {}
+            public titleX?: string,
+            public titleY?: string,
+            public minX?: number,
+            public maxX?: number,
+            public minY?: number,
+            public maxY?: number,
+        ) { }
+
+        public create() { }
     }
 
-    export class BarPlot extends Plot {
+    // TODO: Make it so that X and Y range can be optional
+    // i.e. not defining a max means the max depends on the stored data
+    //% block="X axis:|Title $titleX|Values $minX to $maxX| |Y axis:|Title $titleY|Values $minY to $maxY"
+    //% blockId=dataplotcreateaxisoptions
+    //% titleX.defl="X axis"
+    //% titleY.defl="Y axis"
+    //% blockHidden=true
+    //% inlineInputMode="external"
+    //% group="Plotting"
+    export function createAxisOptions(
+        titleX?: string,
+        titleY?: string,
+        minX?: number,
+        maxX?: number,
+        minY?: number,
+        maxY?: number): AxisOptions {
+        return new AxisOptions(titleX, titleY, minX, maxX, minY, maxY);
+    }
+
+    // Bar plots ----------------------------
+
+    export class BarPlot {
         constructor(
-            title: string,
-            options: PlotOption[],
-            public series?: Series[]
-        ) { super(title, options) }
+            public title: string,
+            public series?: BarSeries[]
+        ) { }
+
+        // Convert data to JSON format (or similar)
+        // ignoring undefined values
+        public create() { }
     }
 
     //% block="add bar plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
@@ -47,28 +79,91 @@ namespace dataplot {
     //% group="Plotting"
     //% inlineInputMode="external"
     //% plot.shadow=dataplotcreatebarplot
-    //% s1.shadow=dataplotcreateseries
-    //% s2.shadow=dataplotcreateseries
-    //% s3.shadow=dataplotcreateseries
-    //% s4.shadow=dataplotcreateseries
-    //% s5.shadow=dataplotcreateseries
+    //% s1.shadow=dataplotcreatebarseries
+    //% s2.shadow=dataplotcreatebarseries
+    //% s3.shadow=dataplotcreatebarseries
+    //% s4.shadow=dataplotcreatebarseries
+    //% s5.shadow=dataplotcreatebarseries
     //% weight=95
     export function addBarPlot(
         plot: BarPlot,
-        s1: Series,
-        s2?: Series,
-        s3?: Series,
-        s4?: Series,
-        s5?: Series): void {
+        s1: BarSeries,
+        s2?: BarSeries,
+        s3?: BarSeries,
+        s4?: BarSeries,
+        s5?: BarSeries): void {
         plot.series = [s1, s2, s3, s4, s5].filter(s => !!s)
+        // Send configuration data here?
+        // Use plot.create()
     }
 
-    export class LinePlot extends Plot {
+    //% block="bar plot $title"
+    //% blockId=dataplotcreatebarplot
+    //% blockHidden=true
+    //% axops.shadow=dataplotcreateaxisoptions
+    //% inlineInputMode="variable"
+    //% compileHiddenArguments=true // I assume this uses the default values for not extended arguments?
+    //% inlineInputModeLimit=1
+    //% duplicateShadowOnDrag
+    export function createBarPlot(
+        title: string): BarPlot {
+        return new BarPlot(title);
+    }
+
+    // One set of bars?
+    // Multiple series creates a graph with multiple bars per x value
+    export class BarSeries { 
+        constructor(
+            public name: string,
+            public options?: BarSeriesOptions
+        ) { }
+    }
+
+    //% block="bar series $title||options|$seriesops"
+    //% blockId=dataplotcreatebarseries
+    //% group="Plotting"
+    //% seriesops.shadow=dataplotcreatebarseriesoptions
+    //% blockHidden=true
+    //% inlineInputMode="variable"
+    //% inlineInputModeLimit=1
+    export function createBarSeries (
+        title: string,
+        seriesops?: BarSeriesOptions
+    ): BarSeries {
+        return new BarSeries(title, seriesops);
+    }
+    
+    /** Stores series data */
+    export class BarSeriesOptions {
+        constructor(
+            public colour?: number,
+            public barwidth?: number
+        ) { }
+
+        public create() { }
+    }
+
+    //% block="bar colour $colour icon"
+    //% blockId=dataplotcreatebarseriesoptions
+    //% group="Plotting"
+    //% compileHiddenArguments=true
+    //% colour.shadow="colorNumberPicker"
+    //% blockHidden=true
+    //% inlineInputMode="external"
+    export function createBarSeriesOptions(
+        colour?: number,
+        barwidth?: number): BarSeriesOptions {
+        return new BarSeriesOptions(colour, barwidth);
+    }
+
+    // Line plots ---------------------------
+
+    export class LinePlot {
         constructor(
             title: string,
-            options: PlotOption[],
-            public series?: Series[]
-        ) { super(title, options) }
+            public axisoptions?: AxisOptions,
+            public series?: LineSeries[]
+        ) { }
     }
 
     //% block="add line plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
@@ -76,266 +171,255 @@ namespace dataplot {
     //% group="Plotting"
     //% inlineInputMode="external"
     //% plot.shadow=dataplotcreatelineplot
-    //% s1.shadow=dataplotcreateseries
-    //% s2.shadow=dataplotcreateseries
-    //% s3.shadow=dataplotcreateseries
-    //% s4.shadow=dataplotcreateseries
-    //% s5.shadow=dataplotcreateseries
+    //% s1.shadow=dataplotcreatelineseries
+    //% s2.shadow=dataplotcreatelineseries
+    //% s3.shadow=dataplotcreatelineseries
+    //% s4.shadow=dataplotcreatelineseries
+    //% s5.shadow=dataplotcreatelineseries
     //% weight=96
     export function addLinePlot(
         plot: LinePlot,
-        s1: Series,
-        s2?: Series,
-        s3?: Series,
-        s4?: Series,
-        s5?: Series): void {
+        s1: LineSeries,
+        s2?: LineSeries,
+        s3?: LineSeries,
+        s4?: LineSeries,
+        s5?: LineSeries): void {
         plot.series = [s1, s2, s3, s4, s5].filter(s => !!s)
     }
 
-    export class Series {
-        constructor(
-            public name: string,
-            public options: SeriesOption[]
-        ) {}
-    }
-
-    /** 
-     * Expect titles to be unique
-     */
-    export class Option {
-        constructor(
-            public name: string,
-            public value: any,
-        ) {}
-
-        public apply(): String {
-            return "{" + this.name + ": " + this.value + "}" 
-        }
-    }
-
-    // Plot Options -------------------------------
-
-    export class PlotOption extends Option {
-        constructor(
-            name: string,
-            value: any,
-        ) { super(name, value) }
-    }
-
-    export class BarOption extends PlotOption {
-        constructor(
-            name: string,
-            value: any,
-        ) { super(name, value) }
-    }
-
-    export class LineOption extends PlotOption {
-        constructor(
-            public name: string,
-            public value: any,
-        ) { super(name, value) }
-    }
-
-    export class AxisOption extends (BarOption) {
-        constructor(
-            public name: string,
-            public value: any,
-        ) { super(name, value) }
-    }
-
-    export class XOption extends AxisOption {
-        constructor(
-            public name: string,
-            public value: any,
-        ) { super(name, value) }
-    }
-
-    export class YOption extends AxisOption {
-        constructor(
-            public name: string,
-            public value: any,
-        ) { super(name, value) }
-    }
-
-    export class XMinOption extends XOption {
-        constructor(public value: number) { super("X min", value) }
-    }
-
-    //% block="X min $value"
-    //% blockId=dataplotcreatexminoption
-    //% group="Axis Options"
-    export function createMinXOption(value: number): XMinOption {
-        return new XMinOption(value)
-    }
-
-    export class XMaxOption extends XOption {
-        constructor(value: number) { super("X max", value) }
-    }
-
-    //% block="X max $value"
-    //% blockId=dataplotcreatexmaxoption
-    //% group="Axis Options"
-    export function createMaxXOption(value: number): XMaxOption {
-        return new XMaxOption(value)
-    }
-
-    export class XLabelOption extends XOption {
-        constructor(public value: string) { super("X label", value) }
-    }
-
-    //% block="X label $value"
-    //% blockId=dataplotcreatexlabeloption
-    //% group="Axis Options"
-    export function createXLabelOption(value: string): XLabelOption {
-        return new XLabelOption(value)
-    }
-
-    export class YMinOption extends YOption {
-        constructor(value: number) { super("Y min", value) }
-    }
-
-    //% block="Y min $value"
-    //% blockId=dataplotcreateyminoption
-    //% group="Axis Options"
-    export function createYMinOption(value: number): YMinOption {
-        return new YMinOption(value)
-    }
-
-    export class YMaxOption extends YOption {
-        constructor(value: number) { super("Y max", value) }
-    }
-
-    //% block="Y max $value"
-    //% blockId=dataplotcreateymaxoption
-    //% group="Axis Options"
-    export function createMaxYOption(value: number): YMaxOption {
-        return new YMaxOption(value)
-    }
-
-    export class YLabelOption extends XOption {
-        constructor(public value: string) { super("Y label", value) }
-    }
-
-    //% block="Y label $value"
-    //% blockId=dataplotcreateylabeloption
-    //% group="Axis Options"
-    export function createYLabelOption(value: string): YLabelOption {
-        return new YLabelOption(value)
-    }
-
-    // Series Options -----------------------------
-
-    export class SeriesOption extends Option {
-        constructor(
-            public name: string,
-            public value: any,
-        ) { super(name, value) }
-    }
-
-    //% block="bar plot $title||options $op1 $op2 $op3 $op4 $op5 $op6 $op7 $op8 $op9 $op10"
-    //% blockId=dataplotcreatebarplot
-    //% blockHidden=true
-    //% inlineInputMode="variable"
-    //% inlineInputModeLimit=1
-    //% group="Plotting"
-    export function createBarPlot(
-        title: string,
-        op1?: BarOption,
-        op2?: BarOption,
-        op3?: BarOption,
-        op4?: BarOption,
-        op5?: BarOption,
-        op6?: BarOption,
-        op7?: BarOption,
-        op8?: BarOption,
-        op9?: BarOption,
-        op10?: BarOption
-    ): BarPlot {
-        return new BarPlot(title,
-            [
-                op1,
-                op2,
-                op3,
-                op4,
-                op5,
-                op6,
-                op7,
-                op8,
-                op9,
-                op10,
-            ].filter(op => !!op)
-        );
-    }
-
-    //% block="line plot $title||options $op1 $op2 $op3 $op4 $op5 $op6 $op7 $op8 $op9 $op10"
+    //% block="line plot $title||axis options|$axops"
     //% blockId=dataplotcreatelineplot
+    //% axops.shadow=dataplotcreateaxisoptions
     //% blockHidden=true
     //% inlineInputMode="variable"
+    //% compileHiddenArguments=true
+    //% inlineInputMode="variable"
     //% inlineInputModeLimit=1
+    //% duplicateShadowOnDrag
     //% group="Plotting"
     export function createLinePlot(
         title: string,
-        op1?: LineOption,
-        op2?: LineOption,
-        op3?: LineOption,
-        op4?: LineOption,
-        op5?: LineOption,
-        op6?: LineOption,
-        op7?: LineOption,
-        op8?: LineOption,
-        op9?: LineOption,
-        op10?: LineOption
+        axops?: AxisOptions,
     ): LinePlot {
-        return new LinePlot(title,
-            [
-                op1,
-                op2,
-                op3,
-                op4,
-                op5,
-                op6,
-                op7,
-                op8,
-                op9,
-                op10,
-            ].filter(op => !!op)
-        );
+        return new LinePlot(title, axops);
     }
 
-    //% block="series $title||options $op1 $op2 $op3 $op4 $op5 $op6 $op7 $op8 $op9 $op10"
-    //% blockId=dataplotcreateseries
+    // One line
+    export class LineSeries {
+        constructor(
+            public name: string,
+            public options?: LineSeriesOptions
+        ) { }
+    }
+
+    //% block="line series $title||options|$seriesops"
+    //% blockId=dataplotcreatelineseries
+    //% group="Plotting"
+    //% seriesops.shadow=dataplotcreatelineseriesoptions
     //% blockHidden=true
     //% inlineInputMode="variable"
     //% inlineInputModeLimit=1
-    //% group="Plotting"
-    export function createSeries(
+    export function createLineSeries(
         title: string,
-        op1?: SeriesOption,
-        op2?: SeriesOption,
-        op3?: SeriesOption,
-        op4?: SeriesOption,
-        op5?: SeriesOption,
-        op6?: SeriesOption,
-        op7?: SeriesOption,
-        op8?: SeriesOption,
-        op9?: SeriesOption,
-        op10?: SeriesOption
-    ): Series {
-        return new Series(title,
-            [
-                op1,
-                op2,
-                op3,
-                op4,
-                op5,
-                op6,
-                op7,
-                op8,
-                op9,
-                op10,
-            ].filter(op => !!op)
-        );
+        seriesops?: LineSeriesOptions
+    ): LineSeries {
+        return new LineSeries(title, seriesops);
     }
+
+    /** Stores series data */
+    export class LineSeriesOptions {
+        constructor(
+            public colour?: number,
+            public barwidth?: number
+        ) { }
+
+        public create() { }
+    }
+
+    //% block="line colour $colour icon"
+    //% blockId=dataplotcreatelineseriesoptions
+    //% group="Plotting"
+    //% colour.shadow="colorNumberPicker"
+    //% blockHidden=true
+    //% inlineInputMode="external"
+    export function createLineSeriesOptions(
+        colour?: number,
+        barwidth?: number): LineSeriesOptions {
+        return new LineSeriesOptions(colour, barwidth);
+    }
+
+    // Scatter plots ------------------------
+
+    export class ScatterPlot {
+        constructor(
+            title: string,
+            public axisoptions?: AxisOptions,
+            public series?: ScatterSeries[]
+        ) { }
+    }
+
+    //% block="add scatter plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
+    //% blockId=dataplotaddscatterplot
+    //% group="Plotting"
+    //% inlineInputMode="external"
+    //% plot.shadow=dataplotcreatescatterplot
+    //% s1.shadow=dataplotcreatescatterseries
+    //% s2.shadow=dataplotcreatescatterseries
+    //% s3.shadow=dataplotcreatescatterseries
+    //% s4.shadow=dataplotcreatescatterseries
+    //% s5.shadow=dataplotcreatescatterseries
+    //% weight=94
+    export function addScatterPlot(
+        plot: ScatterPlot,
+        s1: ScatterSeries,
+        s2?: ScatterSeries,
+        s3?: ScatterSeries,
+        s4?: ScatterSeries,
+        s5?: ScatterSeries): void {
+        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s)
+    }
+
+    //% block="scatter plot $title||axis options|$axops"
+    //% blockId=dataplotcreatescatterplot
+    //% axops.shadow=dataplotcreateaxisoptions
+    //% blockHidden=true
+    //% inlineInputMode="variable"
+    //% compileHiddenArguments=true
+    //% inlineInputMode="variable"
+    //% inlineInputModeLimit=1
+    //% duplicateShadowOnDrag
+    //% group="Plotting"
+    export function createScatterPlot(
+        title: string,
+        axops?: AxisOptions,
+    ): ScatterPlot {
+        return new ScatterPlot(title, axops);
+    }
+
+    // One set of points
+    export class ScatterSeries {
+        constructor(
+            public name: string,
+            public options?: ScatterSeriesOptions
+        ) { }
+    }
+
+    //% block="scatter series $title||options|$seriesops"
+    //% blockId=dataplotcreatescatterseries
+    //% group="Plotting"
+    //% seriesops.shadow=dataplotcreatescatterseriesoptions
+    //% blockHidden=true
+    //% inlineInputMode="variable"
+    //% inlineInputModeLimit=1
+    export function createScatterSeries(
+        title: string,
+        seriesops?: ScatterSeriesOptions
+    ): ScatterSeries {
+        return new ScatterSeries(title, seriesops);
+    }
+
+    /** Stores series data */
+    export class ScatterSeriesOptions {
+        constructor(
+            public colour?: number,
+        ) { }
+
+        public create() { }
+    }
+
+    //% block="point colour $colour icon"
+    //% blockId=dataplotcreatescatterseriesoptions
+    //% group="Plotting"
+    //% colour.shadow="colorNumberPicker"
+    //% blockHidden=true
+    //% inlineInputMode="external"
+    export function createScatterSeriesOptions(
+        colour?: number): ScatterSeriesOptions {
+        return new ScatterSeriesOptions(colour);
+    }
+
+    // Pie plots ----------------------------
+
+    export class PiePlot {
+        constructor(
+            title: string,
+            public series?: PieSeries
+        ) { }
+    }
+
+    //% block="add pie plot|$plot|with data|$s1"
+    //% blockId=dataplotaddpieplot
+    //% group="Plotting"
+    //% inlineInputMode="external"
+    //% plot.shadow=dataplotcreatepieplot
+    //% s1.shadow=dataplotcreatepieseries
+    //% weight=93
+    export function addPiePlot(
+        plot: PiePlot,
+        s1: PieSeries): void {
+        plot.series = s1
+    }
+
+    //% block="pie plot $title"
+    //% blockId=dataplotcreatepieplot
+    //% axops.shadow=dataplotcreateaxisoptions
+    //% blockHidden=true
+    //% inlineInputMode="variable"
+    //% compileHiddenArguments=true
+    //% inlineInputMode="variable"
+    //% inlineInputModeLimit=1
+    //% duplicateShadowOnDrag
+    //% group="Plotting"
+    export function createPiePlot(
+        title: string,
+    ): PiePlot {
+        return new PiePlot(title);
+    }
+
+    // Only one series per pie plot
+    export class PieSeries {
+        constructor(
+            public name: string,
+            public options?: PieSeriesOptions
+        ) { }
+    }
+
+    //% block="options|$seriesops"
+    //% blockId=dataplotcreatepieseries
+    //% group="Plotting"
+    //% seriesops.shadow=dataplotcreatepieseriesoptions
+    //% blockHidden=true
+    //% inlineInputMode="external"
+    //% inlineInputModeLimit=1
+    export function createPieSeries(
+        title: string,
+        seriesops?: PieSeriesOptions
+    ): PieSeries {
+        return new PieSeries(title, seriesops);
+    }
+
+    /** Stores series data */
+    export class PieSeriesOptions {
+        constructor(
+            public colours?: number[],
+        ) { }
+
+        public create() { }
+    }
+
+    //% block="colours $colours"
+    //% blockId=dataplotcreatepieseriesoptions
+    //% group="Plotting"
+    //% colours.shadow="lists_create_with"
+    //% colours.defl="colorNumberPicker"
+    //% blockHidden=true
+    //% inlineInputMode="external"
+    export function createPieSeriesOptions(
+        colours?: number[]): PieSeriesOptions {
+        return new PieSeriesOptions(colours);
+    }
+
+    // ------------------------------------
 
     //% block="set output mode $mode"
     //% blockId=dataplotsetoutputmode
