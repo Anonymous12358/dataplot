@@ -24,5 +24,16 @@
         "Sunrise Lecybyl",
         "Arya Saranathan",
         "Connor Stevens"
-    ]
+    ],
+    "yotta": {
+        "config": {
+            "microbit-dal": {
+                "bluetooth": {
+                    "open": 1,
+                    "whitelist": 0,
+                    "security_level": null
+                }
+            }
+        }
+    }
 }

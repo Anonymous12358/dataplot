@@ -19,7 +19,30 @@ enum Icon {
 namespace dataplot {
     //TODO: I believe block ids should be globally unique
     //TODO: Use an enum for output mode
-    let outputMode = "serial";
+    let outputMode: string = "serial";
+    let isConnected: boolean = false;
+    let buffer: string = "";
+
+    serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
+        if (outputMode === "serial" && !isConnected && serial.readLine() === "dataplot connection") {
+            isConnected = true;
+            if (buffer !== "") {
+                serial.writeString(buffer);
+            }
+        }
+    });
+
+    function outputData(data: string) {
+        if (outputMode === "serial") {
+            if (isConnected) {
+                serial.writeLine(data);
+            } else {
+                buffer += data + "\n";
+            }
+        } else if (outputMode === "bluetooth") {
+            bluetooth.uartWriteLine(data);
+        }
+    }
 
     //% blockId=time_column_name
     //% block="time"
@@ -292,8 +315,8 @@ namespace dataplot {
          * @param mode true to output by bluetooth, false to output by serial
          */
     //% blockId=set_output_mode
-    //% block="Output via bluetooth $mode"
-    //% mode.shadow="toggleOnOff"
+    //% block="Output via bluetooth (yes) $mode or serial (no)"
+    //% mode.shadow="toggleYesNo"
     export function set_output_mode(mode: boolean) {
         if (mode) {
             outputMode = "bluetooth";
@@ -315,7 +338,7 @@ namespace dataplot {
             "y": graph_settings.y_axis,
             "series": seriess.map((series) => ({
                 "x_column": series.x_column,
-                "y_column": series.x_column,
+                "y_column": series.y_column,
                 "color": series.color,
                 "icon": series.icon || "cross",
                 "displayName": series.display_name || series.y_column
@@ -323,11 +346,12 @@ namespace dataplot {
         });
     }
 
-    function outputData(data: string) {
-        if (outputMode === "serial") {
-            serial.writeLine(data);
-        } else if (outputMode === "bluetooth") {
-            bluetooth.uartWriteString(data);
-        }
+    //% block
+    export function sendData(data: string) {
+        outputData(JSON.stringify({
+            "type": "data",
+            "timestamp": input.runningTime(),
+            "values": JSON.parse(data)
+        }));
     }
 }
