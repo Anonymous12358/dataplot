@@ -3,11 +3,11 @@
     "dependencies": {
         "core": "*",
         "flashlog": "*",
-        "datalogger": "*",
         "bluetooth": "*"
     },
     "files": [
-        "dataplot.ts"
+        "dataplot.ts",
+        "datalogger.ts"
     ],
     "targetVersions": {
         "target": "7.0.61",

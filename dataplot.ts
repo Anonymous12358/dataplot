@@ -44,6 +44,22 @@ namespace dataplot {
         }
     }
 
+    export function onLogged(data: datalogger.ColumnValue[]) {
+        let outputObject: { [key: string]: any } = {
+            "type": "data",
+            "timestamp": input.runningTime(),
+            "values": {}
+        };
+        for (let columnValue of data) {
+            if (!isNaN(+columnValue.value)) {
+                outputObject.values[columnValue.column] = +columnValue.value
+            }
+        }
+        if (!!outputObject.values) {
+            outputData(JSON.stringify(outputObject));
+        }
+    }
+
     //% blockId=time_column_name
     //% block="time"
     //% weight=30
@@ -346,16 +362,6 @@ namespace dataplot {
                 "displayName": series.display_name || ""
             }))
         });
-    }
-
-    //% block
-    //% weight=0
-    export function sendData(data: string) {
-        outputData(JSON.stringify({
-            "type": "data",
-            "timestamp": input.runningTime(),
-            "values": JSON.parse(data)
-        }));
     }
 }
 
