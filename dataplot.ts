@@ -3,14 +3,14 @@ enum Icon {
     Cross,
     //% block="plus +"
     Plus,
-    //% block="zhe Ж"
-    Zhe,
+    //% block="bowtie ⋈"
+    Bowtie,
     //% block="circle ●"
     Circle,
     //% block="diamond ⧫"
     Diamond,
-    //% block="rectangle ▮"
-    Rectangle,
+    //% block="square ■"
+    Square,
     //% block="triangle ▲"
     Triangle
 }
@@ -21,7 +21,7 @@ namespace dataplot {
     //TODO: Use an enum for output mode
     let outputMode: string = "serial";
     let isConnected: boolean = false;
-    let buffer: string = "";
+    let buffer: string = ".........................\n";
 
     serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
         if (outputMode === "serial" && !isConnected && serial.readLine() === "dataplot connection") {
@@ -46,6 +46,7 @@ namespace dataplot {
 
     //% blockId=time_column_name
     //% block="time"
+    //% weight=30
     export function time(): string {
         return "time (seconds)"
     }
@@ -128,16 +129,16 @@ namespace dataplot {
 
     //% blockId=icon_field
     //% block="$icon"
-    // blockHidden=true
+    //% blockHidden=true
     export function _icon(icon: Icon): string {
         switch (icon) {
-            case Icon.Cross: return "cross";
-            case Icon.Plus: return "plus";
-            case Icon.Zhe: return "zhe";
-            case Icon.Circle: return "circle";
-            case Icon.Diamond: return "diamond";
-            case Icon.Rectangle: return "rectangle";
-            case Icon.Triangle: return "triangle";
+            case Icon.Cross: return "x-thin-open";
+            case Icon.Plus: return "cross-thin-open";
+            case Icon.Bowtie: return "bowtie-open";
+            case Icon.Circle: return "circle-open";
+            case Icon.Diamond: return "diamond-tall";
+            case Icon.Square: return "square";
+            case Icon.Triangle: return "triangle-up";
         }
     }
 
@@ -189,6 +190,7 @@ namespace dataplot {
      */
     //% blockId=dataplot_rgb
     //% block="red $red green $green blue $blue"
+    //% weight=25
     export function rgb(red: number, green: number, blue: number): number {
         return (red << 16) + (green << 8) + blue;
     }
@@ -201,7 +203,7 @@ namespace dataplot {
      * @param series2 Up to 10 total series
      */
     //% blockId=add_plot_scatter_line
-    //% block="Add $graph_type|plot $graph_settings|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
+    //% block="Add $graph_type plot $graph_settings|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
     //% graph_type.shadow=graph_type_field
     //% graph_settings.shadow=graph_settings_field
     //% series1.shadow=series_field
@@ -236,7 +238,7 @@ namespace dataplot {
     //% block="Add histogram plot $graph_settings|with series $series1"
     //% graph_settings.shadow=graph_settings_field
     //% series1.shadow=series_field_no_icon
-    //% weight=100
+    //% weight=96
     export function add_plot_histogram(
         graph_settings: GraphSettings,
         series1: Series
@@ -254,7 +256,7 @@ namespace dataplot {
      * @param series2 Up to 10 total series
      */
     //% bockId=add_plot_bar
-    //% block="Add bar chart $graph_settings|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
+    //% block="Add bar chart $graph_settings|with bars $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
     //% graph_settings.shadow=graph_settings_field_no_x
     //% series1.shadow=series_field_no_x
     //% series2.shadow=series_field_no_x
@@ -266,7 +268,7 @@ namespace dataplot {
     //% series8.shadow=series_field_no_x
     //% series9.shadow=series_field_no_x
     //% series10.shadow=series_field_no_x
-    //% weight=100
+    //% weight=97
     export function add_plot_bar(
         graph_settings: GraphSettings,
         series1: Series, series2?: Series, series3?: Series, series4?: Series, series5?: Series,
@@ -286,7 +288,7 @@ namespace dataplot {
      * @param series2 Up to 10 total series
      */
     //% bockId=add_plot_pie
-    //% block="Add pie chart $graph_settings|with series $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
+    //% block="Add pie chart $graph_settings|with wedges $series1||$series2 $series3 $series4 $series5 $series6 $series7 $series8 $series9 $series10"
     //% graph_settings.shadow=graph_settings_field_no_axes
     //% series1.shadow=series_field_no_x
     //% series2.shadow=series_field_no_x
@@ -298,7 +300,7 @@ namespace dataplot {
     //% series8.shadow=series_field_no_x
     //% series9.shadow=series_field_no_x
     //% series10.shadow=series_field_no_x
-    //% weight=100
+    //% weight=98
     export function add_plot_pie(
         graph_settings: GraphSettings,
         series1: Series, series2?: Series, series3?: Series, series4?: Series, series5?: Series,
@@ -315,7 +317,7 @@ namespace dataplot {
          * @param mode true to output by bluetooth, false to output by serial
          */
     //% blockId=set_output_mode
-    //% block="Output via bluetooth (yes) $mode or serial (no)"
+    //% block="Output via serial (no) $mode or bluetooth (yes)"
     //% mode.shadow="toggleYesNo"
     export function set_output_mode(mode: boolean) {
         if (mode) {
@@ -334,19 +336,20 @@ namespace dataplot {
             "type": "config",
             "graphType": graph_type,
             "title": graph_settings.title,
-            "x": graph_settings.x_axis,
-            "y": graph_settings.y_axis,
+            "x": graph_settings.x_axis || {},
+            "y": graph_settings.y_axis || {},
             "series": seriess.map((series) => ({
-                "x_column": series.x_column,
+                "x_column": series.x_column || "",
                 "y_column": series.y_column,
                 "color": series.color,
-                "icon": series.icon || "cross",
-                "displayName": series.display_name || series.y_column
+                "icon": series.icon || "",
+                "displayName": series.display_name || ""
             }))
         });
     }
 
     //% block
+    //% weight=0
     export function sendData(data: string) {
         outputData(JSON.stringify({
             "type": "data",
@@ -355,3 +358,12 @@ namespace dataplot {
         }));
     }
 }
+
+
+// "series": seriess.map((series) => ({
+// "x_column": series.x_column,
+//     "y_column": series.y_column,
+//         "color": series.color,
+//             "icon": series.icon || "cross",
+//                "displayName": series.display_name || series.y_column
+//            }))
