@@ -15,16 +15,19 @@ enum Icon {
     Triangle
 }
 
+enum OutputMode {
+    Serial,
+    Bluetooth
+}
+
 //% color="#AA278D"
 namespace dataplot {
-    //TODO: I believe block ids should be globally unique
-    //TODO: Use an enum for output mode
-    let outputMode: string = "serial";
+    let outputMode: OutputMode = OutputMode.Serial;
     let isConnected: boolean = false;
     let buffer: string = ".........................\n";
 
     serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
-        if (outputMode === "serial" && !isConnected && serial.readLine() === "dataplot connection") {
+        if (outputMode === OutputMode.Serial && !isConnected && serial.readLine() === "dataplot") {
             isConnected = true;
             if (buffer !== "") {
                 serial.writeString(buffer);
@@ -32,14 +35,21 @@ namespace dataplot {
         }
     });
 
-    function outputData(data: string) {
-        if (outputMode === "serial") {
-            if (isConnected) {
-                serial.writeLine(data);
-            } else {
-                buffer += data + "\n";
+    bluetooth.onUartDataReceived(serial.delimiters(Delimiters.NewLine), () => {
+        if (outputMode === OutputMode.Bluetooth && !isConnected && bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine)) === "dataplot") {
+            isConnected = true;
+            if (buffer !== "") {
+                bluetooth.uartWriteString(buffer);
             }
-        } else if (outputMode === "bluetooth") {
+        }
+    });
+
+    function outputData(data: string) {
+        if (!isConnected) {
+            buffer += data + "\n";
+        } else if (outputMode === OutputMode.Serial) {
+            serial.writeLine(data);
+        } else {
             bluetooth.uartWriteLine(data);
         }
     }
@@ -60,6 +70,10 @@ namespace dataplot {
         }
     }
 
+    /**
+     * Returns the constant string "time (seconds)"
+     * This string is the name of the column in which timestamps are logged, so this block saves typing the string repeatedly when plotting against time
+     */
     //% blockId=time_column_name
     //% block="time"
     //% weight=30
@@ -329,17 +343,17 @@ namespace dataplot {
     }
 
     /**
-         * Set whether to output graph config and data by bluetooth or serial
-         * @param mode true to output by bluetooth, false to output by serial
-         */
+     * Set whether to output graph config and data by bluetooth or serial
+     * @param mode true to output by bluetooth, false to output by serial
+     */
     //% blockId=set_output_mode
     //% block="Output via serial (no) $mode or bluetooth (yes)"
     //% mode.shadow="toggleYesNo"
     export function set_output_mode(mode: boolean) {
         if (mode) {
-            outputMode = "bluetooth";
+            outputMode = OutputMode.Bluetooth;
         } else {
-            outputMode = "serial";
+            outputMode = OutputMode.Serial;
         }
     }
 
@@ -364,12 +378,3 @@ namespace dataplot {
         });
     }
 }
-
-
-// "series": seriess.map((series) => ({
-// "x_column": series.x_column,
-//     "y_column": series.y_column,
-//         "color": series.color,
-//             "icon": series.icon || "cross",
-//                "displayName": series.display_name || series.y_column
-//            }))
