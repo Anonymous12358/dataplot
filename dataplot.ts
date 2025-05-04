@@ -213,10 +213,10 @@ namespace dataplot {
     /**
      * Specify a colour through its red, green, and blue values.
      * This extension is not intended for colour processing: the block is provided only as a primitive way to specify colours beyond the default sixteen.
+     * Returns the colour as a single 24-bit RGB integer value.
      * @param red Intensity of red light
      * @param green Intensity of green light
      * @param blue Intensity of blue light
-     * @returns The colour as a single RGB integer value
      */
     //% blockId=dataplot_rgb
     //% block="red $red green $green blue $blue"
@@ -259,6 +259,7 @@ namespace dataplot {
     }
 
     /**
+     * This block is hidden and not currently supported.
      * Add a histogram to the display.
      * Each bar has a height determined by its y value, and stretches horizontally from the end of the previous bar (or minimum x value) to its x value.
      * @param graph_settings A GraphSettings object with the title to display above the plot and optional configuration for the x and y axes
@@ -266,6 +267,7 @@ namespace dataplot {
      */
     //% bockId=add_plot_histogram
     //% block="Add histogram plot $graph_settings|with series $series1"
+    //% blockHidden=true
     //% graph_settings.shadow=graph_settings_field
     //% series1.shadow=series_field_no_icon
     //% weight=96
