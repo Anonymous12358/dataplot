@@ -71,8 +71,8 @@ namespace dataplot {
     }
 
     /**
-     * Returns the constant string "time (seconds)"
-     * This string is the name of the column in which timestamps are logged, so this block saves typing the string repeatedly when plotting against time
+     * Returns the constant string "time (seconds)".
+     * This string is the name of the column in which timestamps are logged, so this block saves typing the string repeatedly when plotting against time.
      */
     //% blockId=time_column_name
     //% block="time"
@@ -211,8 +211,8 @@ namespace dataplot {
     }
 
     /**
-     * Specify a colour through its red, green, and blue values
-     * This extension is not intended for colour processing: the block is provided only as a primitive way to specify colours beyond the default sixteen
+     * Specify a colour through its red, green, and blue values.
+     * This extension is not intended for colour processing: the block is provided only as a primitive way to specify colours beyond the default sixteen.
      * @param red Intensity of red light
      * @param green Intensity of green light
      * @param blue Intensity of blue light
@@ -226,7 +226,7 @@ namespace dataplot {
     }
 
     /**
-     * Add a line or scatter plot to the display
+     * Add a line or scatter plot to the display.
      * @param graph_type Either "line" to draw a line from point to point, or "scatter" to not draw it
      * @param graph_settings A GraphSettings object with the title to display above the plot and optional configuration for the x and y axes
      * @param series1 A Series object with columns to read data from, a colour for the points and line plotted, and optionally, a name for the series and an icon to use for each point
@@ -259,8 +259,8 @@ namespace dataplot {
     }
 
     /**
-     * Add a histogram to the display
-     * Each bar has a height determined by its y value, and stretches horizontally from the end of the previous bar (or minimum x value) to its x value
+     * Add a histogram to the display.
+     * Each bar has a height determined by its y value, and stretches horizontally from the end of the previous bar (or minimum x value) to its x value.
      * @param graph_settings A GraphSettings object with the title to display above the plot and optional configuration for the x and y axes
      * @param series1 A single Series object with columns from which to read data, a colour for the bars plotted, and optionally, a name for the series. Icons cannot be specified through the blocks interface and are ignored if specified otherwise.
      */
@@ -279,8 +279,8 @@ namespace dataplot {
     }
 
     /**
-     * Add a bar chart to the display
-     * Each bar is a series, with height determined by its y value
+     * Add a bar chart to the display.
+     * Each bar is a series, with height determined by its y value.
      * @param graph_settings A GraphSettings object with the title to display above the plot and optional configuration for the y axis. X axis configuration cannot be specified through the blocks interface and is ignored if specified otherwise
      * @param series1 A Series object with a column from which to read the y data, a colour for the bar plotted, and optionally, a name for the series. Icon and x column cannot be specified through the blocks interface and are ignored if specified otherwise.
      * @param series2 Up to 10 total series
@@ -311,8 +311,8 @@ namespace dataplot {
     }
 
     /**
-     * Add a pie chart to the display
-     * Each sector is a series, with arc length determined by its y value
+     * Add a pie chart to the display.
+     * Each sector is a series, with arc length determined by its y value.
      * @param graph_settings A GraphSettings object with the title to display above the plot. X axis configuration cannot be specified through the blocks interface and is ignored if specified otherwise
      * @param series1 A Series object with a column from which to read the y data, a colour for the sector plotted, and optionally, a name for the series. Icon and x column cannot be specified through the blocks interface and are ignored if specified otherwise.
      * @param series2 Up to 10 total series
@@ -343,7 +343,7 @@ namespace dataplot {
     }
 
     /**
-     * Set whether to output graph config and data by bluetooth or serial
+     * Set whether to output graph config and data by bluetooth or serial.
      * @param mode true to output by bluetooth, false to output by serial
      */
     //% blockId=set_output_mode
