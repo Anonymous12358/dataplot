@@ -3,11 +3,11 @@
     "dependencies": {
         "core": "*",
         "flashlog": "*",
-        "datalogger": "*",
         "bluetooth": "*"
     },
     "files": [
-        "dataplot.ts"
+        "dataplot.ts",
+        "datalogger.ts"
     ],
     "targetVersions": {
         "target": "7.0.61",
@@ -18,7 +18,12 @@
     ],
     "preferredEditor": "tsprj",
     "authors": [
-        "Just Jem Bennett for now"
+        "Peter Ashley",
+        "Julia Bellardo",
+        "Jem Bennett",
+        "Sunrise Lecybyl",
+        "Arya Saranathan",
+        "Connor Stevens"
     ],
     "yotta": {
         "config": {

@@ -1,27 +1,117 @@
+// Should these be exported?
+enum Icon {
+    //% block="cross X"
+    Cross,
+    //% block="plus +"
+    Plus,
+    //% block="bowtie ⋈"
+    Bowtie,
+    //% block="circle ●"
+    Circle,
+    //% block="diamond ⧫"
+    Diamond,
+    //% block="square ■"
+    Square,
+    //% block="triangle ▲"
+    Triangle
+}
+
+enum OutputMode {
+    //% block="serial"
+    Serial,
+    //% block="bluetooth"
+    Bluetooth
+}
+
 /**
  * Send plotting data to flash storage
  * Follows the same structure seen in datalogger
- * Currently just uses the blocks as a template,
- * so no data is sent
  */
 //% block="Data Plotter"
 //% color="#AA278D"
 //% icon="\uf080"
-//% groups=["Plotting", "others"] // Not working?
+//% groups=["Plotting", "others"]
 namespace dataplot {
-    //TODO: More output modes?
+
     //TODO: Docstrings
 
-    export enum OutputMode {
-        //% block="serial"
-        Serial,
-        //% block="bluetooth"
-        Bluetooth
+    //% blockId=dataplot_icon
+    //% block="$icon"
+    //% blockHidden=true
+    export function _icon(icon: Icon): string {
+        switch (icon) {
+            case Icon.Cross: return "x-thin-open";
+            case Icon.Plus: return "cross-thin-open";
+            case Icon.Bowtie: return "bowtie-open";
+            case Icon.Circle: return "circle-open";
+            case Icon.Diamond: return "diamond-tall";
+            case Icon.Square: return "square";
+            case Icon.Triangle: return "triangle-up";
+        }
     }
 
-    let outputMode: OutputMode = OutputMode.Serial
+    /**
+     * Returns the constant string "time (seconds)".
+     * This string is the name of the column in which timestamps are logged, so this block saves typing the string repeatedly when plotting against time.
+     */
+    //% blockId=time_column_name
+    //% block="time (seconds)"
+    //% weight=30
+    export function time(): string {
+        return "time (seconds)"
+    }
 
-    // Plots and Series base classes ----------------
+    // Connection related code ----------------------
+
+    let outputMode: OutputMode = OutputMode.Serial
+    let isConnected: boolean = false;
+    let buffer: string = ".........................\n";
+
+    serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
+        if (outputMode === OutputMode.Serial && !isConnected && serial.readLine() === "dataplot") {
+            isConnected = true;
+            if (buffer !== "") {
+                serial.writeString(buffer);
+            }
+        }
+    });
+
+    bluetooth.onUartDataReceived(serial.delimiters(Delimiters.NewLine), () => {
+        if (outputMode === OutputMode.Bluetooth && !isConnected && bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine)) === "dataplot") {
+            isConnected = true;
+            if (buffer !== "") {
+                bluetooth.uartWriteString(buffer);
+            }
+        }
+    });
+
+    function outputData(data: string) {
+        if (!isConnected) {
+            buffer += data + "\n";
+        } else if (outputMode === OutputMode.Serial) {
+            serial.writeLine(data);
+        } else {
+            bluetooth.uartWriteLine(data);
+        }
+    }
+
+    export function onLogged(data: datalogger.ColumnValue[]) {
+        let outputObject: { [key: string]: any } = {
+            "type": "data",
+            "timestamp": input.runningTime(),
+            "values": {}
+        };
+        for (let columnValue of data) {
+            if (!isNaN(+columnValue.value)) {
+                outputObject.values[columnValue.column] = +columnValue.value
+            }
+        }
+        if (!!outputObject.values) {
+            outputData(JSON.stringify(outputObject));
+        }
+    }
+
+    // Shared classes --------------------------
     
     /**
      * A single graph of any type
@@ -39,11 +129,23 @@ namespace dataplot {
             public maxY?: number,
         ) { }
 
-        public create() { }
+        public createX(): string {
+            return JSON.stringify({
+                "label": this.titleX,
+                "min": this.minX || "",
+                "max": this.maxX || "",
+            });
+        }
+
+        public createY(): string {
+            return JSON.stringify({
+                "label": this.titleY,
+                "min": this.minY,
+                "max": this.maxY,
+            });
+        }
     }
 
-    // TODO: Make it so that X and Y range can be optional
-    // i.e. not defining a max means the max depends on the stored data
     //% block="X axis:|Title $titleX|Values $minX to $maxX| |Y axis:|Title $titleY|Values $minY to $maxY"
     //% blockId=dataplotcreateaxisoptions
     //% titleX.defl="X axis"
@@ -61,6 +163,21 @@ namespace dataplot {
         return new AxisOptions(titleX, titleY, minX, maxX, minY, maxY);
     }
 
+    //% block="X axis:|Title $titleX|Y axis:|Title $titleY|Values $minY to $maxY"
+    //% blockId=dataplotcreateaxisoptionsbar
+    //% titleX.defl="X axis"
+    //% titleY.defl="Y axis"
+    //% blockHidden=true
+    //% inlineInputMode="external"
+    //% group="Plotting"
+    export function createAxisOptionsBar(
+        titleX?: string,
+        titleY?: string,
+        minY?: number,
+        maxY?: number): AxisOptions {
+        return new AxisOptions(titleX, titleY, minY, maxY);
+    }
+
     // Bar plots ----------------------------
 
     export class BarPlot {
@@ -71,7 +188,14 @@ namespace dataplot {
 
         // Convert data to JSON format (or similar)
         // ignoring undefined values
-        public create() { }
+        public create(): string {
+            return JSON.stringify({
+                "type": "config",
+                "graphType": "bar",
+                "title": this.title,
+                "series": this.series.map(s => s.create())
+            });
+        }
     }
 
     //% block="add bar plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
@@ -110,27 +234,42 @@ namespace dataplot {
         return new BarPlot(title);
     }
 
-    // One set of bars?
-    // Multiple series creates a graph with multiple bars per x value
+    // One set of bars
+    // Multiple series creates a graph with multiple bars per x value?
     export class BarSeries { 
         constructor(
             public name: string,
+            public y_column: string,
+            public icon?: string,
             public options?: BarSeriesOptions
         ) { }
+
+        public create(): string {
+            return JSON.stringify({
+                "x_column": "",
+                "y_column": this.y_column,
+                "color": this.options.colour || "",
+                "icon": this.icon || "",
+                "displayName": this.name || ""
+            })
+        }
     }
 
-    //% block="bar series $title||options|$seriesops"
+    //% block="bar series $title|using data from column $y_column||icon $icon options|$seriesops"
     //% blockId=dataplotcreatebarseries
     //% group="Plotting"
+    //% y_column.shadow=datalogger_columnfield
+    //% icon.shadow=dataplot_icon
     //% seriesops.shadow=dataplotcreatebarseriesoptions
     //% blockHidden=true
-    //% inlineInputMode="variable"
-    //% inlineInputModeLimit=1
+    //% inlineInputMode="external"
     export function createBarSeries (
         title: string,
+        y_column: string,
+        icon?: string,
         seriesops?: BarSeriesOptions
     ): BarSeries {
-        return new BarSeries(title, seriesops);
+        return new BarSeries(title, y_column, icon, seriesops);
     }
     
     /** Stores series data */
@@ -139,8 +278,6 @@ namespace dataplot {
             public colour?: number,
             public barwidth?: number
         ) { }
-
-        public create() { }
     }
 
     //% block="bar colour $colour icon"
@@ -160,10 +297,21 @@ namespace dataplot {
 
     export class LinePlot {
         constructor(
-            title: string,
+            public title: string,
             public axisoptions?: AxisOptions,
             public series?: LineSeries[]
         ) { }
+
+        public create(): string { 
+            return JSON.stringify({
+                "type": "config",
+                "graphType": "line",
+                "title": this.title,
+                "x": this.axisoptions.createX() || {},
+                "y": this.axisoptions.createY() || {},
+                "series": this.series.map(s => s.create())
+            })
+        }
     }
 
     //% block="add line plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
@@ -208,22 +356,40 @@ namespace dataplot {
     export class LineSeries {
         constructor(
             public name: string,
+            public x_column: string,
+            public y_column: string,
+            public icon?: string,
             public options?: LineSeriesOptions
         ) { }
+
+        public create(): string {
+            return JSON.stringify({
+                "x_column": this.x_column,
+                "y_column": this.y_column,
+                "color": this.options.colour || "",
+                "icon": this.icon || "",
+                "displayName": this.name || ""
+            });
+        }
     }
 
-    //% block="line series $title||options|$seriesops"
+    //% block="line series $title|using X data from column $x_column|Y data from column $column_y||icon $icon options|$seriesops"
     //% blockId=dataplotcreatelineseries
     //% group="Plotting"
+    //% x_column.shadow=datalogger_columnfield
+    //% y_column.shadow=datalogger_columnfield
+    //% icon.shadow=dataplot_icon
     //% seriesops.shadow=dataplotcreatelineseriesoptions
     //% blockHidden=true
-    //% inlineInputMode="variable"
-    //% inlineInputModeLimit=1
+    //% inlineInputMode="external"
     export function createLineSeries(
         title: string,
+        column_x: string,
+        column_y: string,
+        icon?: string,
         seriesops?: LineSeriesOptions
     ): LineSeries {
-        return new LineSeries(title, seriesops);
+        return new LineSeries(title, column_x, column_y, icon, seriesops);
     }
 
     /** Stores series data */
@@ -232,11 +398,9 @@ namespace dataplot {
             public colour?: number,
             public barwidth?: number
         ) { }
-
-        public create() { }
     }
 
-    //% block="line colour $colour icon"
+    //% block="line colour $colour"
     //% blockId=dataplotcreatelineseriesoptions
     //% group="Plotting"
     //% colour.shadow="colorNumberPicker"
@@ -252,10 +416,21 @@ namespace dataplot {
 
     export class ScatterPlot {
         constructor(
-            title: string,
+            public title: string,
             public axisoptions?: AxisOptions,
             public series?: ScatterSeries[]
         ) { }
+
+        public create(): string {
+            return JSON.stringify({
+                "type": "config",
+                "graphType": "scatter",
+                "title": this.title,
+                "x": this.axisoptions.createX() || {},
+                "y": this.axisoptions.createY() || {},
+                "series": this.series.map(s => s.create())
+            })
+        }
     }
 
     //% block="add scatter plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
@@ -276,7 +451,8 @@ namespace dataplot {
         s3?: ScatterSeries,
         s4?: ScatterSeries,
         s5?: ScatterSeries): void {
-        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s)
+        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s);
+        outputData(plot.create());
     }
 
     //% block="scatter plot $title||axis options|$axops"
@@ -300,22 +476,40 @@ namespace dataplot {
     export class ScatterSeries {
         constructor(
             public name: string,
+            public x_column: string,
+            public y_column: string,
+            public icon?: string,
             public options?: ScatterSeriesOptions
         ) { }
+
+        public create(): string {
+            return JSON.stringify({
+                "x_column": this.x_column,
+                "y_column": this.y_column,
+                "color": this.options.colour || "",
+                "icon": this.icon || "",
+                "displayName": this.name || ""
+            });
+        }
     }
 
-    //% block="scatter series $title||options|$seriesops"
+    //% block="scatter series $title|using X data from column $x_column|Y data from column $column_y||icon $icon options|$seriesops"
     //% blockId=dataplotcreatescatterseries
     //% group="Plotting"
+    //% x_column.shadow=datalogger_columnfield
+    //% y_column.shadow=datalogger_columnfield
+    //% icon.shadow=dataplot_icon
     //% seriesops.shadow=dataplotcreatescatterseriesoptions
     //% blockHidden=true
-    //% inlineInputMode="variable"
-    //% inlineInputModeLimit=1
+    //% inlineInputMode="external"
     export function createScatterSeries(
         title: string,
+        x_column: string,
+        y_column: string,
+        icon?: string,
         seriesops?: ScatterSeriesOptions
     ): ScatterSeries {
-        return new ScatterSeries(title, seriesops);
+        return new ScatterSeries(title, x_column, y_column, icon, seriesops);
     }
 
     /** Stores series data */
@@ -323,11 +517,9 @@ namespace dataplot {
         constructor(
             public colour?: number,
         ) { }
-
-        public create() { }
     }
 
-    //% block="point colour $colour icon"
+    //% block="point colour $colour"
     //% blockId=dataplotcreatescatterseriesoptions
     //% group="Plotting"
     //% colour.shadow="colorNumberPicker"
@@ -342,9 +534,18 @@ namespace dataplot {
 
     export class PiePlot {
         constructor(
-            title: string,
+            public title: string,
             public series?: PieSeries
         ) { }
+
+        public create(): string {
+            return JSON.stringify({
+                "type": "config",
+                "graphType": "pie",
+                "title": this.title,
+                "series": this.series.create()
+            })
+        }
     }
 
     //% block="add pie plot|$plot|with data|$s1"
@@ -379,23 +580,34 @@ namespace dataplot {
     // Only one series per pie plot
     export class PieSeries {
         constructor(
-            public name: string,
-            public options?: PieSeriesOptions
+            public y_column: string,
+            public options?: PieSeriesOptions,
+            public series?: PieSeries
         ) { }
+
+        public create(): string {
+            return JSON.stringify({
+                "x_column": "",
+                "y_column": this.y_column,
+                "color": "",
+                "icon": "",
+                "displayName": ""
+            });
+        }
     }
 
-    //% block="options|$seriesops"
+    //% block="using data from column $y_column||options|$seriesops"
     //% blockId=dataplotcreatepieseries
     //% group="Plotting"
+    //% x_column.shadow=datalogger_columnfield
     //% seriesops.shadow=dataplotcreatepieseriesoptions
     //% blockHidden=true
     //% inlineInputMode="external"
-    //% inlineInputModeLimit=1
     export function createPieSeries(
-        title: string,
+        y_column: string,
         seriesops?: PieSeriesOptions
     ): PieSeries {
-        return new PieSeries(title, seriesops);
+        return new PieSeries(y_column, seriesops);
     }
 
     /** Stores series data */
@@ -403,8 +615,6 @@ namespace dataplot {
         constructor(
             public colours?: number[],
         ) { }
-
-        public create() { }
     }
 
     //% block="colours $colours"
@@ -424,10 +634,28 @@ namespace dataplot {
     //% block="set output mode $mode"
     //% blockId=dataplotsetoutputmode
     //% group="Plotting"
-    //% weight=90
     export function setOutputMode(mode: OutputMode) {
         outputMode = mode;
     }
+
+    /*
+    function construct_graph_json(graph_type: string, graph_settings: GraphSettings, seriess: Series[]) {
+        return JSON.stringify({
+            "type": "config",
+            "graphType": graph_type,
+            "title": graph_settings.title,
+            "x": graph_settings.x_axis || {},
+            "y": graph_settings.y_axis || {},
+            "series": seriess.map((series) => ({
+                "x_column": series.x_column || "",
+                "y_column": series.y_column,
+                "color": series.color,
+                "icon": series.icon || "",
+                "displayName": series.display_name || ""
+            }))
+        });
+    }
+    */
 
     export class Test {constructor(public name:string) {}}
 
