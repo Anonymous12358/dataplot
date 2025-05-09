@@ -30,7 +30,7 @@ enum OutputMode {
 //% block="Data Plotter"
 //% color="#AA278D"
 //% icon="\uf080"
-//% groups=["Plotting", "others"]
+//% groups=["Setup", "Plots", "others"]
 namespace dataplot {
 
     //TODO: Docstrings
@@ -50,15 +50,11 @@ namespace dataplot {
         }
     }
 
-    /**
-     * Returns the constant string "time (seconds)".
-     * This string is the name of the column in which timestamps are logged, so this block saves typing the string repeatedly when plotting against time.
-     */
-    //% blockId=time_column_name
-    //% block="time (seconds)"
-    //% weight=30
-    export function time(): string {
-        return "time (seconds)"
+    //% block="set output mode $mode"
+    //% blockId=dataplotsetoutputmode
+    //% group="Setup"
+    export function setOutputMode(mode: OutputMode) {
+        outputMode = mode;
     }
 
     // Connection related code ----------------------
@@ -152,7 +148,7 @@ namespace dataplot {
     //% titleY.defl="Y axis"
     //% blockHidden=true
     //% inlineInputMode="external"
-    //% group="Plotting"
+    //% group="Plots"
     export function createAxisOptions(
         titleX?: string,
         titleY?: string,
@@ -164,13 +160,13 @@ namespace dataplot {
     }
 
     //% block="X axis:|Title $titleX|Y axis:|Title $titleY|Values $minY to $maxY"
-    //% blockId=dataplotcreateaxisoptionsbar
+    //% blockId=dataplotcreateaxisoptionsnox
     //% titleX.defl="X axis"
     //% titleY.defl="Y axis"
     //% blockHidden=true
     //% inlineInputMode="external"
-    //% group="Plotting"
-    export function createAxisOptionsBar(
+    //% group="Plots"
+    export function createAxisOptionsNoX(
         titleX?: string,
         titleY?: string,
         minY?: number,
@@ -200,7 +196,7 @@ namespace dataplot {
 
     //% block="add bar plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
     //% blockId=dataplotaddbarplot
-    //% group="Plotting"
+    //% group="Plots"
     //% inlineInputMode="external"
     //% plot.shadow=dataplotcreatebarplot
     //% s1.shadow=dataplotcreatebarseries
@@ -216,17 +212,16 @@ namespace dataplot {
         s3?: BarSeries,
         s4?: BarSeries,
         s5?: BarSeries): void {
-        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s)
-        // Send configuration data here?
-        // Use plot.create()
+        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s);
+        outputData(plot.create());
     }
 
-    //% block="bar plot $title"
+    //% block="bar plot titled $title"
     //% blockId=dataplotcreatebarplot
     //% blockHidden=true
     //% axops.shadow=dataplotcreateaxisoptions
     //% inlineInputMode="variable"
-    //% compileHiddenArguments=true // I assume this uses the default values for not extended arguments?
+    //% compileHiddenArguments=true
     //% inlineInputModeLimit=1
     //% duplicateShadowOnDrag
     export function createBarPlot(
@@ -257,7 +252,7 @@ namespace dataplot {
 
     //% block="bar series $title|using data from column $y_column||icon $icon options|$seriesops"
     //% blockId=dataplotcreatebarseries
-    //% group="Plotting"
+    //% group="Plots"
     //% y_column.shadow=datalogger_columnfield
     //% icon.shadow=dataplot_icon
     //% seriesops.shadow=dataplotcreatebarseriesoptions
@@ -280,9 +275,9 @@ namespace dataplot {
         ) { }
     }
 
-    //% block="bar colour $colour icon"
+    //% block="bar colour $colour"
     //% blockId=dataplotcreatebarseriesoptions
-    //% group="Plotting"
+    //% group="Plots"
     //% compileHiddenArguments=true
     //% colour.shadow="colorNumberPicker"
     //% blockHidden=true
@@ -316,7 +311,7 @@ namespace dataplot {
 
     //% block="add line plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
     //% blockId=dataplotaddlineplot
-    //% group="Plotting"
+    //% group="Plots"
     //% inlineInputMode="external"
     //% plot.shadow=dataplotcreatelineplot
     //% s1.shadow=dataplotcreatelineseries
@@ -332,10 +327,11 @@ namespace dataplot {
         s3?: LineSeries,
         s4?: LineSeries,
         s5?: LineSeries): void {
-        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s)
+        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s);
+        outputData(plot.create());
     }
 
-    //% block="line plot $title||axis options|$axops"
+    //% block="line plot titled $title||axis options|$axops"
     //% blockId=dataplotcreatelineplot
     //% axops.shadow=dataplotcreateaxisoptions
     //% blockHidden=true
@@ -344,7 +340,7 @@ namespace dataplot {
     //% inlineInputMode="variable"
     //% inlineInputModeLimit=1
     //% duplicateShadowOnDrag
-    //% group="Plotting"
+    //% group="Plots"
     export function createLinePlot(
         title: string,
         axops?: AxisOptions,
@@ -373,9 +369,9 @@ namespace dataplot {
         }
     }
 
-    //% block="line series $title|using X data from column $x_column|Y data from column $column_y||icon $icon options|$seriesops"
+    //% block="line series $title|using X data from column $x_column|Y data from column $y_column||icon $icon options|$seriesops"
     //% blockId=dataplotcreatelineseries
-    //% group="Plotting"
+    //% group="Plots"
     //% x_column.shadow=datalogger_columnfield
     //% y_column.shadow=datalogger_columnfield
     //% icon.shadow=dataplot_icon
@@ -384,12 +380,12 @@ namespace dataplot {
     //% inlineInputMode="external"
     export function createLineSeries(
         title: string,
-        column_x: string,
-        column_y: string,
+        x_column: string,
+        y_column: string,
         icon?: string,
         seriesops?: LineSeriesOptions
     ): LineSeries {
-        return new LineSeries(title, column_x, column_y, icon, seriesops);
+        return new LineSeries(title, x_column, y_column, icon, seriesops);
     }
 
     /** Stores series data */
@@ -402,7 +398,7 @@ namespace dataplot {
 
     //% block="line colour $colour"
     //% blockId=dataplotcreatelineseriesoptions
-    //% group="Plotting"
+    //% group="Plots"
     //% colour.shadow="colorNumberPicker"
     //% blockHidden=true
     //% inlineInputMode="external"
@@ -435,7 +431,7 @@ namespace dataplot {
 
     //% block="add scatter plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
     //% blockId=dataplotaddscatterplot
-    //% group="Plotting"
+    //% group="Plots"
     //% inlineInputMode="external"
     //% plot.shadow=dataplotcreatescatterplot
     //% s1.shadow=dataplotcreatescatterseries
@@ -455,7 +451,7 @@ namespace dataplot {
         outputData(plot.create());
     }
 
-    //% block="scatter plot $title||axis options|$axops"
+    //% block="scatter plot titled $title||axis options|$axops"
     //% blockId=dataplotcreatescatterplot
     //% axops.shadow=dataplotcreateaxisoptions
     //% blockHidden=true
@@ -464,7 +460,7 @@ namespace dataplot {
     //% inlineInputMode="variable"
     //% inlineInputModeLimit=1
     //% duplicateShadowOnDrag
-    //% group="Plotting"
+    //% group="Plots"
     export function createScatterPlot(
         title: string,
         axops?: AxisOptions,
@@ -493,9 +489,9 @@ namespace dataplot {
         }
     }
 
-    //% block="scatter series $title|using X data from column $x_column|Y data from column $column_y||icon $icon options|$seriesops"
+    //% block="scatter series $title|using X data from column $x_column|Y data from column $y_column||icon $icon options|$seriesops"
     //% blockId=dataplotcreatescatterseries
-    //% group="Plotting"
+    //% group="Plots"
     //% x_column.shadow=datalogger_columnfield
     //% y_column.shadow=datalogger_columnfield
     //% icon.shadow=dataplot_icon
@@ -521,7 +517,7 @@ namespace dataplot {
 
     //% block="point colour $colour"
     //% blockId=dataplotcreatescatterseriesoptions
-    //% group="Plotting"
+    //% group="Plots"
     //% colour.shadow="colorNumberPicker"
     //% blockHidden=true
     //% inlineInputMode="external"
@@ -550,7 +546,7 @@ namespace dataplot {
 
     //% block="add pie plot|$plot|with data|$s1"
     //% blockId=dataplotaddpieplot
-    //% group="Plotting"
+    //% group="Plots"
     //% inlineInputMode="external"
     //% plot.shadow=dataplotcreatepieplot
     //% s1.shadow=dataplotcreatepieseries
@@ -558,7 +554,8 @@ namespace dataplot {
     export function addPiePlot(
         plot: PiePlot,
         s1: PieSeries): void {
-        plot.series = s1
+        plot.series = s1;
+        outputData(plot.create());
     }
 
     //% block="pie plot $title"
@@ -570,7 +567,7 @@ namespace dataplot {
     //% inlineInputMode="variable"
     //% inlineInputModeLimit=1
     //% duplicateShadowOnDrag
-    //% group="Plotting"
+    //% group="Plots"
     export function createPiePlot(
         title: string,
     ): PiePlot {
@@ -598,7 +595,7 @@ namespace dataplot {
 
     //% block="using data from column $y_column||options|$seriesops"
     //% blockId=dataplotcreatepieseries
-    //% group="Plotting"
+    //% group="Plots"
     //% x_column.shadow=datalogger_columnfield
     //% seriesops.shadow=dataplotcreatepieseriesoptions
     //% blockHidden=true
@@ -619,7 +616,7 @@ namespace dataplot {
 
     //% block="colours $colours"
     //% blockId=dataplotcreatepieseriesoptions
-    //% group="Plotting"
+    //% group="Plots"
     //% colours.shadow="lists_create_with"
     //% colours.defl="colorNumberPicker"
     //% blockHidden=true
@@ -629,41 +626,113 @@ namespace dataplot {
         return new PieSeriesOptions(colours);
     }
 
-    // ------------------------------------
+    // Hist plots ---------------------------
 
-    //% block="set output mode $mode"
-    //% blockId=dataplotsetoutputmode
-    //% group="Plotting"
-    export function setOutputMode(mode: OutputMode) {
-        outputMode = mode;
+    export class HistPlot {
+        constructor(
+            public title: string,
+            public series?: HistSeries[]
+        ) { }
+
+        public create(): string {
+            return JSON.stringify({
+                "type": "config",
+                "graphType": "histogram",
+                "title": this.title,
+                "series": this.series.map(s => s.create())
+            });
+        }
     }
 
-    /*
-    function construct_graph_json(graph_type: string, graph_settings: GraphSettings, seriess: Series[]) {
-        return JSON.stringify({
-            "type": "config",
-            "graphType": graph_type,
-            "title": graph_settings.title,
-            "x": graph_settings.x_axis || {},
-            "y": graph_settings.y_axis || {},
-            "series": seriess.map((series) => ({
-                "x_column": series.x_column || "",
-                "y_column": series.y_column,
-                "color": series.color,
-                "icon": series.icon || "",
-                "displayName": series.display_name || ""
-            }))
-        });
+    //% block="add histogram|$plot|with series|$s1||$s2 $s3 $s4 $s5"
+    //% blockId=dataplotaddhistplot
+    //% group="Plots"
+    //% inlineInputMode="external"
+    //% plot.shadow=dataplotcreatehistplot
+    //% s1.shadow=dataplotcreatehistseries
+    //% s2.shadow=dataplotcreatehistseries
+    //% s3.shadow=dataplotcreatehistseries
+    //% s4.shadow=dataplotcreatehistseries
+    //% s5.shadow=dataplotcreatehistseries
+    //% weight=92
+    export function addHistPlot(
+        plot: HistPlot,
+        s1: HistSeries,
+        s2?: HistSeries,
+        s3?: HistSeries,
+        s4?: HistSeries,
+        s5?: HistSeries): void {
+        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s);
+        outputData(plot.create());
     }
-    */
 
-    export class Test {constructor(public name:string) {}}
+    //% block="histogram titled $title"
+    //% blockId=dataplotcreatehistplot
+    //% blockHidden=true
+    //% axops.shadow=dataplotcreateaxisoptions
+    //% inlineInputMode="variable"
+    //% compileHiddenArguments=true
+    //% inlineInputModeLimit=1
+    //% duplicateShadowOnDrag
+    export function createHistPlot(
+        title: string): HistPlot {
+        return new HistPlot(title);
+    }
 
-    //% block="make test $value"
-    //% blockId=testtest
-    //% group="Plotting"
-    //% weight=0
-    export function test(value: string): Test {
-        return new Test(value);
+    // One set of bars
+    export class HistSeries {
+        constructor(
+            public name: string,
+            public y_column: string,
+            public icon?: string,
+            public options?: HistSeriesOptions
+        ) { }
+
+        public create(): string {
+            return JSON.stringify({
+                "x_column": "",
+                "y_column": this.y_column,
+                "color": this.options.colour || "",
+                "icon": this.icon || "",
+                "displayName": this.name || ""
+            })
+        }
+    }
+
+    //% block="histogram series $title|using data from column $y_column||icon $icon options|$seriesops"
+    //% blockId=dataplotcreatehistseries
+    //% group="Plots"
+    //% y_column.shadow=datalogger_columnfield
+    //% icon.shadow=dataplot_icon
+    //% seriesops.shadow=dataplotcreatehistseriesoptions
+    //% blockHidden=true
+    //% inlineInputMode="external"
+    export function createHistSeries(
+        title: string,
+        y_column: string,
+        icon?: string,
+        seriesops?: HistSeriesOptions
+    ): HistSeries {
+        return new HistSeries(title, y_column, icon, seriesops);
+    }
+
+    /** Stores series data */
+    export class HistSeriesOptions {
+        constructor(
+            public colour?: number
+        ) { }
+    }
+
+    //% block="bar colour $colour"
+    //% blockId=dataplotcreatehistseriesoptions
+    //% group="Plots"
+    //% compileHiddenArguments=true
+    //% colour.shadow="colorNumberPicker"
+    //% blockHidden=true
+    //% inlineInputMode="external"
+    export function createHistSeriesOptions(
+        colour?: number
+    ): HistSeriesOptions {
+        return new HistSeriesOptions(colour);
     }
 }
