@@ -81,6 +81,7 @@ namespace dataplot {
         if (outputMode === OutputMode.Serial && !isConnected && serial.readLine() === "dataplot") {
             isConnected = true;
             if (buffer !== "") {
+                basic.pause(5000);  // 5s delay to allow proper connection
                 serial.writeString(buffer);
             }
         }
