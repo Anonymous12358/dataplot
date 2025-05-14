@@ -1,4 +1,8 @@
-// Should these be exported?
+// (?.) and (??) operations are not supported in this version of TypeScript
+// So code for the create() methods is messy
+// This also means that Falsy values (such as 0) will be interpreted as undefined
+// which may be undesirable
+
 enum Icon {
     //% block="cross X"
     Cross,
@@ -16,25 +20,19 @@ enum Icon {
     Triangle
 }
 
-enum OutputMode {
-    //% block="serial"
-    Serial,
-    //% block="bluetooth"
-    Bluetooth
-}
-
 /**
  * Send plotting data to flash storage
- * Follows the same structure seen in datalogger
  */
 //% block="Data Plotter"
 //% color="#AA278D"
 //% icon="\uf080"
 //% groups=["Setup", "Plots", "others"]
 namespace dataplot {
-
-    //TODO: Docstrings
-
+    /**
+     * An icon to appear on the web app.
+     * @param icon The icon to display
+     * @returns A value representing the icon, to be recognised by the web app
+     */
     //% blockId=dataplot_icon
     //% block="$icon"
     //% blockHidden=true
@@ -50,11 +48,11 @@ namespace dataplot {
         }
     }
 
-    //% block="set output mode $mode"
-    //% blockId=dataplotsetoutputmode
-    //% group="Setup"
-    export function setOutputMode(mode: OutputMode) {
-        outputMode = mode;
+    export enum OutputMode {
+        //% block="serial"
+        Serial,
+        //% block="bluetooth"
+        Bluetooth
     }
 
     // Connection related code ----------------------
@@ -63,6 +61,22 @@ namespace dataplot {
     let isConnected: boolean = false;
     let buffer: string = ".........................\n";
 
+    /**
+     * Set how plotting data should be sent to the web app.
+     * @param mode Medium to send data through
+     */
+    //% block="set output mode $mode"
+    //% blockId=dataplotsetoutputmode
+    //% group="Setup"
+    export function setOutputMode(mode: OutputMode) {
+        outputMode = mode;
+    }
+
+    /**
+    * Registers an event that establishes the connection
+    * when a newline is received over serial,
+    * and sends any data stored in the buffer.
+    */
     serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
         if (outputMode === OutputMode.Serial && !isConnected && serial.readLine() === "dataplot") {
             isConnected = true;
@@ -72,6 +86,11 @@ namespace dataplot {
         }
     });
 
+    /**
+     * Registers an event that establishes the connection
+     * when a newline is received over bluetooth,
+     * and sends any data stored in the buffer.
+     */
     bluetooth.onUartDataReceived(serial.delimiters(Delimiters.NewLine), () => {
         if (outputMode === OutputMode.Bluetooth && !isConnected && bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine)) === "dataplot") {
             isConnected = true;
@@ -81,16 +100,30 @@ namespace dataplot {
         }
     });
 
+    /**
+     * Sends using the chosen output method.
+     * Stores the data in a buffer if not connected.
+     * @param data Data to be logged to flash storage
+     */
     function outputData(data: string) {
         if (!isConnected) {
             buffer += data + "\n";
         } else if (outputMode === OutputMode.Serial) {
             serial.writeLine(data);
+            basic.pause(100);  // Small delay to ensure full transmission
         } else {
             bluetooth.uartWriteLine(data);
         }
+        console.log(isConnected)
+        console.log(data)
     }
 
+    /** 
+     * Extends dataplot.logData so that extra plotting information
+     * is sent along with the data on the desired medium.
+     * The original data is still logged to flash storage unmodified.
+     * @param data Array of data to be sent
+     */
     export function onLogged(data: datalogger.ColumnValue[]) {
         let outputObject: { [key: string]: any } = {
             "type": "data",
@@ -107,12 +140,7 @@ namespace dataplot {
         }
     }
 
-    // Shared classes --------------------------
-    
-    /**
-     * A single graph of any type
-     * Graphs are uniquely identified by their title
-     */
+    // Shared plotting classes --------------------------
 
     // Stores axis data
     export class AxisOptions {
@@ -125,23 +153,39 @@ namespace dataplot {
             public maxY?: number,
         ) { }
 
+        /**
+         * @returns Information about the X axis in JSON format
+         */
         public createX(): string {
             return JSON.stringify({
-                "label": this.titleX,
+                "label": this.titleX || "X axis",
                 "min": this.minX || "",
                 "max": this.maxX || "",
             });
         }
 
+        /**
+         * @returns Information about the Y axis in JSON format
+         */
         public createY(): string {
             return JSON.stringify({
-                "label": this.titleY,
+                "label": this.titleY || "Y axis",
                 "min": this.minY,
                 "max": this.maxY,
             });
         }
     }
 
+    /**
+     * Information about the axes of a plot
+     * @param titleX [optional] Title of the X axis
+     * @param titleY [optional] Title of the Y axis
+     * @param minX [optional] The minimum value shown on the X axis
+     * @param maxX [optional] The maximum value shown on the X axis
+     * @param minY [optional] The minimum value shown on the Y axis
+     * @param maxY [optional] The maximum value shown on the Y axis
+     * @returns An object storing the data, to be added to the plot.
+     */
     //% block="X axis:|Title $titleX|Values $minX to $maxX| |Y axis:|Title $titleY|Values $minY to $maxY"
     //% blockId=dataplotcreateaxisoptions
     //% titleX.defl="X axis"
@@ -155,11 +199,21 @@ namespace dataplot {
         minX?: number,
         maxX?: number,
         minY?: number,
-        maxY?: number): AxisOptions {
+        maxY?: number
+        ): AxisOptions {
         return new AxisOptions(titleX, titleY, minX, maxX, minY, maxY);
     }
 
-    //% block="X axis:|Title $titleX|Y axis:|Title $titleY|Values $minY to $maxY"
+    /**
+     * Information about the axes of a plot
+     * where the X axis does not have a specified range.
+     * @param titleX [optional] Title of the X axis
+     * @param titleY [optional] Title of the Y axis
+     * @param minY [optional] The minimum value shown on the Y axis
+     * @param maxY [optional] The maximum value shown on the Y axis
+     * @returns An object storing the data, to be added to the plot.
+     */
+    //% block="X axis:|Title $titleX| |Y axis:|Title $titleY|Values $minY to $maxY"
     //% blockId=dataplotcreateaxisoptionsnox
     //% titleX.defl="X axis"
     //% titleY.defl="Y axis"
@@ -170,31 +224,74 @@ namespace dataplot {
         titleX?: string,
         titleY?: string,
         minY?: number,
-        maxY?: number): AxisOptions {
+        maxY?: number
+        ): AxisOptions {
         return new AxisOptions(titleX, titleY, minY, maxY);
     }
 
+    /**
+     * Below are sections for each type of plot,
+     * each consisting of Plot, Series and SeriesOptions classes.
+     * 
+     * Plot classes represent the graph itself, and are uniquely identified by their title.
+     * They store information about the plot as a whole (in this case just axis info)
+     * * Should titles be unique for all plots, or just those of the same type?
+     * * This is determined by the web app implementation.
+     * The Plot class contains a create() method which converts
+     * its stored data into a JSON format recognised by the web app.
+     * 
+     * Series classes define which data is used to create the plot
+     * as well as customisation options for each series,
+     * referencing datalogger columns by name.
+     * It also has a create() method which can be used as a subroutine by Plot.create
+     * 
+     * SeriesOptions classes contain any extra fields which can be
+     * used to customise a series, but are not as significant.
+     * Currently they are mostly redundant.
+     */
     // Bar plots ----------------------------
 
     export class BarPlot {
         constructor(
             public title: string,
+            public axisoptions?: AxisOptions,
             public series?: BarSeries[]
         ) { }
 
-        // Convert data to JSON format (or similar)
-        // ignoring undefined values
+        /** Convert plot information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string {
+            const temp = this.axisoptions;
+            const xdata = temp === undefined ? undefined : temp.createX();
+            const ydata = temp === undefined ? undefined : temp.createY();
             return JSON.stringify({
                 "type": "config",
                 "graphType": "bar",
                 "title": this.title,
+                "x": xdata || {},
+                "y": ydata || {},
                 "series": this.series.map(s => s.create())
             });
         }
     }
 
-    //% block="add bar plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
+    /**
+     * Configure a bar chart to be plotted,
+     * with up to 10 total series.     
+     * @param plot Information about the plot
+     * @param s1 Title for first series to be added
+     * @param s2 [optional] Title for second series to be added
+     * @param s3 [optional] Title for third series to be added
+     * @param s4 [optional] Title for fourth series to be added
+     * @param s5 [optional] Title for fifth series to be added
+     * @param s6 [optional] Title for sixth series to be added
+     * @param s7 [optional] Title for seventh series to be added
+     * @param s8 [optional] Title for eighth series to be added
+     * @param s9 [optional] Title for ninth series to be added
+     * @param s10 [optional] Title for tenth series to be added
+     */
+    //% block="add bar plot|$plot|with series|$s1||$s2 $s3 $s4 $s5 $s6 $s7 $s8 $s9 $s10"
     //% blockId=dataplotaddbarplot
     //% group="Plots"
     //% inlineInputMode="external"
@@ -204,6 +301,11 @@ namespace dataplot {
     //% s3.shadow=dataplotcreatebarseries
     //% s4.shadow=dataplotcreatebarseries
     //% s5.shadow=dataplotcreatebarseries
+    //% s6.shadow=dataplotcreatebarseries
+    //% s7.shadow=dataplotcreatebarseries
+    //% s8.shadow=dataplotcreatebarseries
+    //% s9.shadow=dataplotcreatebarseries
+    //% s10.shadow=dataplotcreatebarseries
     //% weight=95
     export function addBarPlot(
         plot: BarPlot,
@@ -211,81 +313,100 @@ namespace dataplot {
         s2?: BarSeries,
         s3?: BarSeries,
         s4?: BarSeries,
-        s5?: BarSeries): void {
-        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s);
+        s5?: BarSeries,
+        s6?: BarSeries,
+        s7?: BarSeries,
+        s8?: BarSeries,
+        s9?: BarSeries,
+        s10?: BarSeries): void {
+        plot.series = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10].filter(s => !!s);
         outputData(plot.create());
     }
-
-    //% block="bar plot titled $title"
+    
+    /**
+     * The bar chart, uniquely identified by its title.
+     * @param title Title for the bar chart
+     * @param axops [optional] Data about the axes of the plot
+     * @returns Plot object storing the data
+     */
+    //% block="bar plot titled $title||axis options|$axops"
     //% blockId=dataplotcreatebarplot
     //% blockHidden=true
-    //% axops.shadow=dataplotcreateaxisoptions
+    //% axops.shadow=dataplotcreateaxisoptionsnox
     //% inlineInputMode="variable"
-    //% compileHiddenArguments=true
     //% inlineInputModeLimit=1
-    //% duplicateShadowOnDrag
     export function createBarPlot(
-        title: string): BarPlot {
-        return new BarPlot(title);
+        title: string,
+        axops?: AxisOptions
+        ): BarPlot {
+        return new BarPlot(title, axops);
     }
 
-    // One set of bars
-    // Multiple series creates a graph with multiple bars per x value?
     export class BarSeries { 
         constructor(
             public name: string,
-            public y_column: string,
-            public icon?: string,
+            public column: string,
             public options?: BarSeriesOptions
         ) { }
 
+        /** Convert series information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string {
+            const temp = this.options;
+            const colour = temp === undefined ? undefined : temp.colour;
             return JSON.stringify({
                 "x_column": "",
-                "y_column": this.y_column,
-                "color": this.options.colour || "",
-                "icon": this.icon || "",
+                "y_column": this.column,
+                "color": colour || "",
                 "displayName": this.name || ""
             })
         }
     }
-
-    //% block="bar series $title|using data from column $y_column||icon $icon options|$seriesops"
+    
+    /**
+     * A single series of bars representing a column of data.
+     * @param title Title for the series
+     * @param column The datalogger column for the series to read data from
+     * @param seriesops [optional] Options to customise how the series is drawn
+     * @returns Series object storing the data
+     */
+    //% block="bar series $title|using data from column $column||options|$seriesops"
     //% blockId=dataplotcreatebarseries
     //% group="Plots"
-    //% y_column.shadow=datalogger_columnfield
-    //% icon.shadow=dataplot_icon
+    //% column.shadow=datalogger_columnfield
     //% seriesops.shadow=dataplotcreatebarseriesoptions
     //% blockHidden=true
     //% inlineInputMode="external"
     export function createBarSeries (
         title: string,
-        y_column: string,
-        icon?: string,
+        column: string,
         seriesops?: BarSeriesOptions
     ): BarSeries {
-        return new BarSeries(title, y_column, icon, seriesops);
+        return new BarSeries(title, column, seriesops);
     }
     
-    /** Stores series data */
     export class BarSeriesOptions {
         constructor(
             public colour?: number,
-            public barwidth?: number
         ) { }
     }
 
+    /**
+     * Additional options for a bar series
+     * @param colour [optional] The colour of all bars in the series
+     * @returns An object to be kept in the BarSeries class
+     */
     //% block="bar colour $colour"
     //% blockId=dataplotcreatebarseriesoptions
     //% group="Plots"
-    //% compileHiddenArguments=true
     //% colour.shadow="colorNumberPicker"
     //% blockHidden=true
     //% inlineInputMode="external"
     export function createBarSeriesOptions(
-        colour?: number,
-        barwidth?: number): BarSeriesOptions {
-        return new BarSeriesOptions(colour, barwidth);
+        colour?: number
+        ): BarSeriesOptions {
+        return new BarSeriesOptions(colour);
     }
 
     // Line plots ---------------------------
@@ -297,19 +418,40 @@ namespace dataplot {
             public series?: LineSeries[]
         ) { }
 
+        /** Convert plot information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string { 
+            const temp = this.axisoptions;
+            const xdata = temp === undefined ? undefined : temp.createX();
+            const ydata = temp === undefined ? undefined : temp.createY();
             return JSON.stringify({
                 "type": "config",
                 "graphType": "line",
                 "title": this.title,
-                "x": this.axisoptions.createX() || {},
-                "y": this.axisoptions.createY() || {},
+                "x": xdata || {},
+                "y": ydata || {},
                 "series": this.series.map(s => s.create())
             })
         }
     }
 
-    //% block="add line plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
+    /**
+     * Configure a line chart to be plotted,
+     * with up to 10 total series.
+     * @param plot Information about the plot
+     * @param s1 Title for first series to be added
+     * @param s2 [optional] Title for second series to be added
+     * @param s3 [optional] Title for third series to be added
+     * @param s4 [optional] Title for fourth series to be added
+     * @param s5 [optional] Title for fifth series to be added
+     * @param s6 [optional] Title for sixth series to be added
+     * @param s7 [optional] Title for seventh series to be added
+     * @param s8 [optional] Title for eighth series to be added
+     * @param s9 [optional] Title for ninth series to be added
+     * @param s10 [optional] Title for tenth series to be added
+     */
+    //% block="add line plot|$plot|with series|$s1||$s2 $s3 $s4 $s5 $s6 $s7 $s8 $s9 $s10"
     //% blockId=dataplotaddlineplot
     //% group="Plots"
     //% inlineInputMode="external"
@@ -319,6 +461,11 @@ namespace dataplot {
     //% s3.shadow=dataplotcreatelineseries
     //% s4.shadow=dataplotcreatelineseries
     //% s5.shadow=dataplotcreatelineseries
+    //% s6.shadow=dataplotcreatelineseries
+    //% s7.shadow=dataplotcreatelineseries
+    //% s8.shadow=dataplotcreatelineseries
+    //% s9.shadow=dataplotcreatelineseries
+    //% s10.shadow=dataplotcreatelineseries
     //% weight=96
     export function addLinePlot(
         plot: LinePlot,
@@ -326,20 +473,29 @@ namespace dataplot {
         s2?: LineSeries,
         s3?: LineSeries,
         s4?: LineSeries,
-        s5?: LineSeries): void {
+        s5?: LineSeries,
+        s6?: LineSeries,
+        s7?: LineSeries,
+        s8?: LineSeries,
+        s9?: LineSeries,
+        s10?: LineSeries,
+        ): void {
         plot.series = [s1, s2, s3, s4, s5].filter(s => !!s);
         outputData(plot.create());
     }
 
+    /**
+     * The line chart, uniquely identified by its title.
+     * @param title Title for the bar chart
+     * @param axops [optional] Data about the axes of the plot
+     * @returns Plot object storing the data
+     */
     //% block="line plot titled $title||axis options|$axops"
     //% blockId=dataplotcreatelineplot
     //% axops.shadow=dataplotcreateaxisoptions
     //% blockHidden=true
     //% inlineInputMode="variable"
-    //% compileHiddenArguments=true
-    //% inlineInputMode="variable"
     //% inlineInputModeLimit=1
-    //% duplicateShadowOnDrag
     //% group="Plots"
     export function createLinePlot(
         title: string,
@@ -348,7 +504,6 @@ namespace dataplot {
         return new LinePlot(title, axops);
     }
 
-    // One line
     export class LineSeries {
         constructor(
             public name: string,
@@ -358,18 +513,32 @@ namespace dataplot {
             public options?: LineSeriesOptions
         ) { }
 
+        /** Convert series information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string {
+            const temp = this.options;
+            const colour = temp === undefined ? undefined : temp.colour;
             return JSON.stringify({
                 "x_column": this.x_column,
                 "y_column": this.y_column,
-                "color": this.options.colour || "",
+                "color": colour || "",
                 "icon": this.icon || "",
                 "displayName": this.name || ""
             });
         }
     }
 
-    //% block="line series $title|using X data from column $x_column|Y data from column $y_column||icon $icon options|$seriesops"
+    /**
+     * A single line over two columns of data.
+     * @param title Title for the series
+     * @param x_column The datalogger column for the series to read x values from
+     * @param y_column The datalogger column for the series to read y values from
+     * @param icon [optional] The icon to draw points with
+     * @param seriesops [optional] Options to customise how the series is drawn
+     * @returns Series object storing the data
+     */
+    //% block="line series $title|using X data from column $x_column|Y data from column $y_column||draw points as $icon options|$seriesops"
     //% blockId=dataplotcreatelineseries
     //% group="Plots"
     //% x_column.shadow=datalogger_columnfield
@@ -388,14 +557,17 @@ namespace dataplot {
         return new LineSeries(title, x_column, y_column, icon, seriesops);
     }
 
-    /** Stores series data */
     export class LineSeriesOptions {
         constructor(
             public colour?: number,
-            public barwidth?: number
         ) { }
     }
 
+    /**
+     * Additional options for a single line
+     * @param colour [optional] The colour of the line
+     * @returns An object to be kept in the LineSeries class
+     */
     //% block="line colour $colour"
     //% blockId=dataplotcreatelineseriesoptions
     //% group="Plots"
@@ -403,9 +575,9 @@ namespace dataplot {
     //% blockHidden=true
     //% inlineInputMode="external"
     export function createLineSeriesOptions(
-        colour?: number,
-        barwidth?: number): LineSeriesOptions {
-        return new LineSeriesOptions(colour, barwidth);
+        colour?: number
+        ): LineSeriesOptions {
+        return new LineSeriesOptions(colour);
     }
 
     // Scatter plots ------------------------
@@ -417,19 +589,40 @@ namespace dataplot {
             public series?: ScatterSeries[]
         ) { }
 
+        /** Convert plot information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string {
+            const temp = this.axisoptions;
+            const xdata = temp === undefined ? undefined : temp.createX();
+            const ydata = temp === undefined ? undefined : temp.createY();
             return JSON.stringify({
                 "type": "config",
                 "graphType": "scatter",
                 "title": this.title,
-                "x": this.axisoptions.createX() || {},
-                "y": this.axisoptions.createY() || {},
+                "x": xdata || {},
+                "y": ydata || {},
                 "series": this.series.map(s => s.create())
             })
         }
     }
 
-    //% block="add scatter plot|$plot|with series|$s1||$s2 $s3 $s4 $s5"
+    /**
+     * Configure a scatter graph to be plotted,
+     * with up to 10 total series.
+     * @param plot Information about the plot
+     * @param s1 Title for first series to be added
+     * @param s2 [optional] Title for second series to be added
+     * @param s3 [optional] Title for third series to be added
+     * @param s4 [optional] Title for fourth series to be added
+     * @param s5 [optional] Title for fifth series to be added
+     * @param s6 [optional] Title for sixth series to be added
+     * @param s7 [optional] Title for seventh series to be added
+     * @param s8 [optional] Title for eighth series to be added
+     * @param s9 [optional] Title for ninth series to be added
+     * @param s10 [optional] Title for tenth series to be added
+     */
+    //% block="add scatter plot|$plot|with series|$s1||$s2 $s3 $s4 $s5 $s6 $s7 $s8 $s9 $s10"
     //% blockId=dataplotaddscatterplot
     //% group="Plots"
     //% inlineInputMode="external"
@@ -451,15 +644,19 @@ namespace dataplot {
         outputData(plot.create());
     }
 
+    /**
+     * The scatter plot, uniquely identified by its title.
+     * @param title Title for the bar chart
+     * @param axops [optional] Data about the axes of the plot
+     * @returns Plot object storing the data
+     */
     //% block="scatter plot titled $title||axis options|$axops"
     //% blockId=dataplotcreatescatterplot
     //% axops.shadow=dataplotcreateaxisoptions
     //% blockHidden=true
     //% inlineInputMode="variable"
-    //% compileHiddenArguments=true
     //% inlineInputMode="variable"
     //% inlineInputModeLimit=1
-    //% duplicateShadowOnDrag
     //% group="Plots"
     export function createScatterPlot(
         title: string,
@@ -478,18 +675,32 @@ namespace dataplot {
             public options?: ScatterSeriesOptions
         ) { }
 
+        /** Convert series information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string {
+            const temp = this.options;
+            const colour = temp === undefined ? undefined : temp.colour;
             return JSON.stringify({
                 "x_column": this.x_column,
                 "y_column": this.y_column,
-                "color": this.options.colour || "",
+                "color": colour || "",
                 "icon": this.icon || "",
                 "displayName": this.name || ""
             });
         }
     }
 
-    //% block="scatter series $title|using X data from column $x_column|Y data from column $y_column||icon $icon options|$seriesops"
+    /**
+     * A single set of points over two columns of data.
+     * @param title Title for the series
+     * @param x_column The datalogger column for the series to read x values from
+     * @param y_column The datalogger column for the series to read y values from
+     * @param icon [optional] The icon to draw points with
+     * @param seriesops [optional] Options to customise how the series is drawn
+     * @returns Series object storing the data
+     */
+    //% block="scatter series $title|using X data from column $x_column|Y data from column $y_column||draw points as $icon options|$seriesops"
     //% blockId=dataplotcreatescatterseries
     //% group="Plots"
     //% x_column.shadow=datalogger_columnfield
@@ -508,13 +719,17 @@ namespace dataplot {
         return new ScatterSeries(title, x_column, y_column, icon, seriesops);
     }
 
-    /** Stores series data */
     export class ScatterSeriesOptions {
         constructor(
             public colour?: number,
         ) { }
     }
 
+    /**
+     * Additional options for a series of points
+     * @param colour [optional] The colour of all points in the series
+     * @returns An object to be kept in the ScatterSeries class
+     */
     //% block="point colour $colour"
     //% blockId=dataplotcreatescatterseriesoptions
     //% group="Plots"
@@ -522,7 +737,8 @@ namespace dataplot {
     //% blockHidden=true
     //% inlineInputMode="external"
     export function createScatterSeriesOptions(
-        colour?: number): ScatterSeriesOptions {
+        colour?: number
+        ): ScatterSeriesOptions {
         return new ScatterSeriesOptions(colour);
     }
 
@@ -534,6 +750,9 @@ namespace dataplot {
             public series?: PieSeries
         ) { }
 
+        /** Convert plot information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string {
             return JSON.stringify({
                 "type": "config",
@@ -558,15 +777,12 @@ namespace dataplot {
         outputData(plot.create());
     }
 
-    //% block="pie plot $title"
+    //% block="pie plot titled $title"
     //% blockId=dataplotcreatepieplot
-    //% axops.shadow=dataplotcreateaxisoptions
     //% blockHidden=true
     //% inlineInputMode="variable"
-    //% compileHiddenArguments=true
     //% inlineInputMode="variable"
     //% inlineInputModeLimit=1
-    //% duplicateShadowOnDrag
     //% group="Plots"
     export function createPiePlot(
         title: string,
@@ -582,6 +798,9 @@ namespace dataplot {
             public series?: PieSeries
         ) { }
 
+        /** Convert series information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string {
             return JSON.stringify({
                 "x_column": "",
@@ -631,20 +850,44 @@ namespace dataplot {
     export class HistPlot {
         constructor(
             public title: string,
+            public axisoptions?: AxisOptions,
             public series?: HistSeries[]
         ) { }
 
+        /** Convert plot information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string {
+            const temp = this.axisoptions;
+            const xdata = temp === undefined ? undefined : temp.createX();
+            const ydata = temp === undefined ? undefined : temp.createY();
             return JSON.stringify({
                 "type": "config",
                 "graphType": "histogram",
                 "title": this.title,
+                "x": this.axisoptions.createX() || {},
+                "y": this.axisoptions.createY() || {},
                 "series": this.series.map(s => s.create())
             });
         }
     }
 
-    //% block="add histogram|$plot|with series|$s1||$s2 $s3 $s4 $s5"
+    /**
+     * Configure a histogram to be plotted,
+     * with up to 10 total series.
+     * @param plot Information about the plot
+     * @param s1 Title for first series to be added
+     * @param s2 [optional] Title for second series to be added
+     * @param s3 [optional] Title for third series to be added
+     * @param s4 [optional] Title for fourth series to be added
+     * @param s5 [optional] Title for fifth series to be added
+     * @param s6 [optional] Title for sixth series to be added
+     * @param s7 [optional] Title for seventh series to be added
+     * @param s8 [optional] Title for eighth series to be added
+     * @param s9 [optional] Title for ninth series to be added
+     * @param s10 [optional] Title for tenth series to be added
+     */
+    //% block="add histogram|$plot|with series|$s1||$s2 $s3 $s4 $s5 $s6 $s7 $s8 $s9 $s10"
     //% blockId=dataplotaddhistplot
     //% group="Plots"
     //% inlineInputMode="external"
@@ -654,6 +897,11 @@ namespace dataplot {
     //% s3.shadow=dataplotcreatehistseries
     //% s4.shadow=dataplotcreatehistseries
     //% s5.shadow=dataplotcreatehistseries
+    //% s6.shadow=dataplotcreatehistseries
+    //% s7.shadow=dataplotcreatehistseries
+    //% s8.shadow=dataplotcreatehistseries
+    //% s9.shadow=dataplotcreatehistseries
+    //% s10.shadow=dataplotcreatehistseries
     //% weight=92
     export function addHistPlot(
         plot: HistPlot,
@@ -661,72 +909,94 @@ namespace dataplot {
         s2?: HistSeries,
         s3?: HistSeries,
         s4?: HistSeries,
-        s5?: HistSeries): void {
-        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s);
+        s5?: HistSeries,
+        s6?: HistSeries,
+        s7?: HistSeries,
+        s8?: HistSeries,
+        s9?: HistSeries,
+        s10?: HistSeries
+        ): void {
+        plot.series = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10].filter(s => !!s);
         outputData(plot.create());
     }
 
-    //% block="histogram titled $title"
+    /**
+     * The histogram, uniquely identified by its title.
+     * @param title Title for the bar chart
+     * @param axops [optional] Data about the axes of the plot
+     * @returns Plot object storing the data
+     */
+    //% block="histogram titled $title||axis options|$axops"
     //% blockId=dataplotcreatehistplot
+    //% axops.shadow=dataplotcreateaxisoptionsnox
     //% blockHidden=true
-    //% axops.shadow=dataplotcreateaxisoptions
     //% inlineInputMode="variable"
-    //% compileHiddenArguments=true
     //% inlineInputModeLimit=1
-    //% duplicateShadowOnDrag
     export function createHistPlot(
-        title: string): HistPlot {
-        return new HistPlot(title);
+        title: string,
+        axops?: AxisOptions
+        ): HistPlot {
+        return new HistPlot(title, axops);
     }
 
-    // One set of bars
     export class HistSeries {
         constructor(
             public name: string,
             public y_column: string,
-            public icon?: string,
             public options?: HistSeriesOptions
         ) { }
 
+        /** Convert series information into JSON format recognised by the web app,
+         * replacing undefined values with defaults.
+         */
         public create(): string {
+            const temp = this.options;
+            const colour = temp === undefined ? undefined : temp.colour;
             return JSON.stringify({
                 "x_column": "",
                 "y_column": this.y_column,
-                "color": this.options.colour || "",
-                "icon": this.icon || "",
+                "color": colour || "",
                 "displayName": this.name || ""
             })
         }
     }
 
-    //% block="histogram series $title|using data from column $y_column||icon $icon options|$seriesops"
+    /**
+     * A single series of bars representing a column of data.
+     * @param title Title for the series
+     * @param column The datalogger column for the series to read data from
+     * @param seriesops [optional] Options to customise how the series is drawn
+     * @returns Series object storing the data
+     */
+    //% block="histogram series $title|using data from column $y_column||options|$seriesops"
     //% blockId=dataplotcreatehistseries
     //% group="Plots"
     //% y_column.shadow=datalogger_columnfield
-    //% icon.shadow=dataplot_icon
     //% seriesops.shadow=dataplotcreatehistseriesoptions
     //% blockHidden=true
     //% inlineInputMode="external"
     export function createHistSeries(
         title: string,
         y_column: string,
-        icon?: string,
         seriesops?: HistSeriesOptions
     ): HistSeries {
-        return new HistSeries(title, y_column, icon, seriesops);
+        return new HistSeries(title, y_column, seriesops);
     }
 
-    /** Stores series data */
     export class HistSeriesOptions {
         constructor(
             public colour?: number
         ) { }
     }
 
+    /**
+     * Additional options for a histogram series
+     * @param colour [optional] The colour of all bars in the series
+     * @returns An object to be kept in the HistSeries class
+     */
     //% block="bar colour $colour"
     //% blockId=dataplotcreatehistseriesoptions
     //% group="Plots"
-    //% compileHiddenArguments=true
     //% colour.shadow="colorNumberPicker"
     //% blockHidden=true
     //% inlineInputMode="external"
