@@ -114,8 +114,6 @@ namespace dataplot {
         } else {
             bluetooth.uartWriteLine(data);
         }
-        console.log(isConnected)
-        console.log(data)
     }
 
     /** 
@@ -903,6 +901,7 @@ namespace dataplot {
     //% s9.shadow=dataplotcreatehistseries
     //% s10.shadow=dataplotcreatehistseries
     //% weight=92
+    //% blockHidden=true
     export function addHistPlot(
         plot: HistPlot,
         s1: HistSeries,
@@ -968,19 +967,19 @@ namespace dataplot {
      * @param seriesops [optional] Options to customise how the series is drawn
      * @returns Series object storing the data
      */
-    //% block="histogram series $title|using data from column $y_column||options|$seriesops"
+    //% block="histogram series $title|using data from column $column||options|$seriesops"
     //% blockId=dataplotcreatehistseries
     //% group="Plots"
-    //% y_column.shadow=datalogger_columnfield
+    //% column.shadow=datalogger_columnfield
     //% seriesops.shadow=dataplotcreatehistseriesoptions
     //% blockHidden=true
     //% inlineInputMode="external"
     export function createHistSeries(
         title: string,
-        y_column: string,
+        column: string,
         seriesops?: HistSeriesOptions
     ): HistSeries {
-        return new HistSeries(title, y_column, seriesops);
+        return new HistSeries(title, column, seriesops);
     }
 
     export class HistSeriesOptions {
