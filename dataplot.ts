@@ -81,7 +81,6 @@ namespace dataplot {
         if (outputMode === OutputMode.Serial && !isConnected && serial.readLine() === "dataplot") {
             isConnected = true;
             if (buffer !== "") {
-                basic.pause(5000);  // 5s delay to allow proper connection
                 serial.writeString(buffer);
             }
         }
@@ -141,6 +140,19 @@ namespace dataplot {
 
     // Shared plotting classes --------------------------
 
+    // Default axis informatiomn
+    const defaultX = {
+        "label": "X axis",
+        "min": 0,
+        "max": 0,
+    }
+
+    const defaultY = {
+        "label": "Y axis",
+        "min": 0,
+        "max": 0,
+    }
+
     // Stores axis data
     export class AxisOptions {
         constructor(
@@ -155,23 +167,23 @@ namespace dataplot {
         /**
          * @returns Information about the X axis in JSON format
          */
-        public createX(): string {
-            return JSON.stringify({
+        public createX(): any {
+            return {
                 "label": this.titleX || "X axis",
                 "min": this.minX || "",
                 "max": this.maxX || "",
-            });
+            };
         }
 
         /**
          * @returns Information about the Y axis in JSON format
          */
-        public createY(): string {
-            return JSON.stringify({
+        public createY(): any {
+            return {
                 "label": this.titleY || "Y axis",
                 "min": this.minY,
                 "max": this.maxY,
-            });
+            };
         }
     }
 
@@ -260,18 +272,18 @@ namespace dataplot {
         /** Convert plot information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string {
+        public create(): any {
             const temp = this.axisoptions;
             const xdata = temp === undefined ? undefined : temp.createX();
             const ydata = temp === undefined ? undefined : temp.createY();
-            return JSON.stringify({
+            return {
                 "type": "config",
                 "graphType": "bar",
                 "title": this.title,
-                "x": xdata || {},
-                "y": ydata || {},
+                "x": xdata || defaultX,
+                "y": ydata || defaultY,
                 "series": this.series.map(s => s.create())
-            });
+            };
         }
     }
 
@@ -319,7 +331,7 @@ namespace dataplot {
         s9?: BarSeries,
         s10?: BarSeries): void {
         plot.series = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10].filter(s => !!s);
-        outputData(plot.create());
+        outputData(JSON.stringify(plot.create()));
     }
     
     /**
@@ -351,15 +363,15 @@ namespace dataplot {
         /** Convert series information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string {
+        public create(): any {
             const temp = this.options;
             const colour = temp === undefined ? undefined : temp.colour;
-            return JSON.stringify({
+            return {
                 "x_column": "",
                 "y_column": this.column,
                 "color": colour || "",
                 "displayName": this.name || ""
-            })
+            }
         }
     }
     
@@ -370,7 +382,7 @@ namespace dataplot {
      * @param seriesops [optional] Options to customise how the series is drawn
      * @returns Series object storing the data
      */
-    //% block="bar series $title|using data from column $column||options|$seriesops"
+    //% block="bar series named $title|using data from column $column||options|$seriesops"
     //% blockId=dataplotcreatebarseries
     //% group="Plots"
     //% column.shadow=datalogger_columnfield
@@ -420,18 +432,18 @@ namespace dataplot {
         /** Convert plot information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string { 
+        public create(): any { 
             const temp = this.axisoptions;
             const xdata = temp === undefined ? undefined : temp.createX();
             const ydata = temp === undefined ? undefined : temp.createY();
-            return JSON.stringify({
+            return {
                 "type": "config",
                 "graphType": "line",
                 "title": this.title,
-                "x": xdata || {},
-                "y": ydata || {},
+                "x": xdata || defaultX,
+                "y": ydata || defaultY,
                 "series": this.series.map(s => s.create())
-            })
+            };
         }
     }
 
@@ -480,12 +492,12 @@ namespace dataplot {
         s10?: LineSeries,
         ): void {
         plot.series = [s1, s2, s3, s4, s5].filter(s => !!s);
-        outputData(plot.create());
+        outputData(JSON.stringify(plot.create()));
     }
 
     /**
      * The line chart, uniquely identified by its title.
-     * @param title Title for the bar chart
+     * @param title Title for the line chart
      * @param axops [optional] Data about the axes of the plot
      * @returns Plot object storing the data
      */
@@ -515,16 +527,16 @@ namespace dataplot {
         /** Convert series information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string {
+        public create(): any {
             const temp = this.options;
             const colour = temp === undefined ? undefined : temp.colour;
-            return JSON.stringify({
+            return {
                 "x_column": this.x_column,
                 "y_column": this.y_column,
                 "color": colour || "",
                 "icon": this.icon || "",
                 "displayName": this.name || ""
-            });
+            };
         }
     }
 
@@ -537,7 +549,7 @@ namespace dataplot {
      * @param seriesops [optional] Options to customise how the series is drawn
      * @returns Series object storing the data
      */
-    //% block="line series $title|using X data from column $x_column|Y data from column $y_column||draw points as $icon options|$seriesops"
+    //% block="line series named $title|using X data from column $x_column|Y data from column $y_column||draw points as $icon options|$seriesops"
     //% blockId=dataplotcreatelineseries
     //% group="Plots"
     //% x_column.shadow=datalogger_columnfield
@@ -591,18 +603,18 @@ namespace dataplot {
         /** Convert plot information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string {
+        public create(): any {
             const temp = this.axisoptions;
             const xdata = temp === undefined ? undefined : temp.createX();
             const ydata = temp === undefined ? undefined : temp.createY();
-            return JSON.stringify({
+            return {
                 "type": "config",
                 "graphType": "scatter",
                 "title": this.title,
-                "x": xdata || {},
-                "y": ydata || {},
+                "x": xdata || defaultX,
+                "y": ydata || defaultY,
                 "series": this.series.map(s => s.create())
-            })
+            };
         }
     }
 
@@ -631,6 +643,11 @@ namespace dataplot {
     //% s3.shadow=dataplotcreatescatterseries
     //% s4.shadow=dataplotcreatescatterseries
     //% s5.shadow=dataplotcreatescatterseries
+    //% s6.shadow=dataplotcreatescatterseries
+    //% s7.shadow=dataplotcreatescatterseries
+    //% s8.shadow=dataplotcreatescatterseries
+    //% s9.shadow=dataplotcreatescatterseries
+    //% s10.shadow=dataplotcreatescatterseries
     //% weight=94
     export function addScatterPlot(
         plot: ScatterPlot,
@@ -638,14 +655,20 @@ namespace dataplot {
         s2?: ScatterSeries,
         s3?: ScatterSeries,
         s4?: ScatterSeries,
-        s5?: ScatterSeries): void {
-        plot.series = [s1, s2, s3, s4, s5].filter(s => !!s);
-        outputData(plot.create());
+        s5?: ScatterSeries,
+        s6?: ScatterSeries,
+        s7?: ScatterSeries,
+        s8?: ScatterSeries,
+        s9?: ScatterSeries,
+        s10?: ScatterSeries
+        ): void {
+        plot.series = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10].filter(s => !!s);
+        outputData(JSON.stringify(plot.create()));
     }
 
     /**
      * The scatter plot, uniquely identified by its title.
-     * @param title Title for the bar chart
+     * @param title Title for the scatter plot
      * @param axops [optional] Data about the axes of the plot
      * @returns Plot object storing the data
      */
@@ -677,16 +700,16 @@ namespace dataplot {
         /** Convert series information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string {
+        public create(): any {
             const temp = this.options;
             const colour = temp === undefined ? undefined : temp.colour;
-            return JSON.stringify({
+            return {
                 "x_column": this.x_column,
                 "y_column": this.y_column,
                 "color": colour || "",
                 "icon": this.icon || "",
                 "displayName": this.name || ""
-            });
+            };
         }
     }
 
@@ -699,7 +722,7 @@ namespace dataplot {
      * @param seriesops [optional] Options to customise how the series is drawn
      * @returns Series object storing the data
      */
-    //% block="scatter series $title|using X data from column $x_column|Y data from column $y_column||draw points as $icon options|$seriesops"
+    //% block="scatter series named $title|using X data from column $x_column|Y data from column $y_column||draw points as $icon options|$seriesops"
     //% blockId=dataplotcreatescatterseries
     //% group="Plots"
     //% x_column.shadow=datalogger_columnfield
@@ -746,102 +769,152 @@ namespace dataplot {
     export class PiePlot {
         constructor(
             public title: string,
-            public series?: PieSeries
+            public series?: PieSeries[]
         ) { }
 
         /** Convert plot information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string {
-            return JSON.stringify({
+        public create(): any {
+            return {
                 "type": "config",
                 "graphType": "pie",
                 "title": this.title,
-                "series": this.series.create()
-            })
+                "series": this.series.map(s => s.create())
+            };
         }
     }
 
-    //% block="add pie plot|$plot|with data|$s1"
+    /**
+     * Configure a pie chart to be plotted,
+     * with up to 10 total wedges.
+     * @param plot Information about the plot
+     * @param s1 Title for first wedge to be added
+     * @param s2 [optional] Title for second wedge to be added
+     * @param s3 [optional] Title for third wedge to be added
+     * @param s4 [optional] Title for fourth wedge to be added
+     * @param s5 [optional] Title for fifth wedge to be added
+     * @param s6 [optional] Title for sixth wedge to be added
+     * @param s7 [optional] Title for seventh wedge to be added
+     * @param s8 [optional] Title for eighth wedge to be added
+     * @param s9 [optional] Title for ninth wedge to be added
+     * @param s10 [optional] Title for tenth wedge to be added
+     */
+    //% block="add pie plot|$plot|with wedges|$s1||$s2 $s3 $s4 $s5 $s6 $s7 $s8 $s9 $s10"
     //% blockId=dataplotaddpieplot
     //% group="Plots"
     //% inlineInputMode="external"
     //% plot.shadow=dataplotcreatepieplot
     //% s1.shadow=dataplotcreatepieseries
+    //% s2.shadow=dataplotcreatepieseries
+    //% s3.shadow=dataplotcreatepieseries
+    //% s4.shadow=dataplotcreatepieseries
+    //% s5.shadow=dataplotcreatepieseries
+    //% s6.shadow=dataplotcreatepieseries
+    //% s7.shadow=dataplotcreatepieseries
+    //% s8.shadow=dataplotcreatepieseries
+    //% s9.shadow=dataplotcreatepieseries
+    //% s10.shadow=dataplotcreatepieseries
     //% weight=93
     export function addPiePlot(
         plot: PiePlot,
-        s1: PieSeries): void {
-        plot.series = s1;
-        outputData(plot.create());
+        s1: PieSeries,
+        s2?: PieSeries,
+        s3?: PieSeries,
+        s4?: PieSeries,
+        s5?: PieSeries,
+        s6?: PieSeries,
+        s7?: PieSeries,
+        s8?: PieSeries,
+        s9?: PieSeries,
+        s10?: PieSeries,
+        ): void {
+        plot.series = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10].filter(s => !!s);
+        outputData(JSON.stringify(plot.create()));
     }
 
+    /**
+     * The pie chart, uniquely identified by its title.
+     * @param title Title for the pie chart
+     * @returns Plot object storing the data
+     */
     //% block="pie plot titled $title"
     //% blockId=dataplotcreatepieplot
+    //% group="Plots"
     //% blockHidden=true
     //% inlineInputMode="variable"
-    //% inlineInputMode="variable"
     //% inlineInputModeLimit=1
-    //% group="Plots"
     export function createPiePlot(
         title: string,
     ): PiePlot {
         return new PiePlot(title);
     }
 
-    // Only one series per pie plot
     export class PieSeries {
         constructor(
-            public y_column: string,
+            public title: string,
+            public column: string,
             public options?: PieSeriesOptions,
-            public series?: PieSeries
         ) { }
 
         /** Convert series information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string {
-            return JSON.stringify({
+        public create(): any {
+            const temp = this.options;
+            const colour = temp === undefined ? undefined : temp.colour;
+            return {
                 "x_column": "",
-                "y_column": this.y_column,
-                "color": "",
-                "icon": "",
+                "y_column": this.column,
+                "color": colour || "",
                 "displayName": ""
-            });
+            };
         }
     }
 
-    //% block="using data from column $y_column||options|$seriesops"
+    /**
+     * A single wedge representing a column of data.
+     * @param title Title for the wedge
+     * @param column The datalogger column for the wedge to read data from
+     * @param seriesops [optional] Options to customise how the wedge is drawn
+     * @returns Series object storing the data
+     */
+    //% block="wedge named $title|using data from column $column||options|$seriesops"
     //% blockId=dataplotcreatepieseries
     //% group="Plots"
-    //% x_column.shadow=datalogger_columnfield
+    //% column.shadow=datalogger_columnfield
     //% seriesops.shadow=dataplotcreatepieseriesoptions
     //% blockHidden=true
     //% inlineInputMode="external"
     export function createPieSeries(
-        y_column: string,
+        title: string,
+        column: string,
         seriesops?: PieSeriesOptions
     ): PieSeries {
-        return new PieSeries(y_column, seriesops);
+        return new PieSeries(title, column, seriesops);
     }
 
     /** Stores series data */
     export class PieSeriesOptions {
         constructor(
-            public colours?: number[],
+            public colour?: number,
         ) { }
     }
 
-    //% block="colours $colours"
+    /**
+     * Additional options for a wedge
+     * @param colour [optional] The colour of the wedge
+     * @returns An object to be kept in the PieSeries class
+     */
+    //% block="colour $colour"
     //% blockId=dataplotcreatepieseriesoptions
     //% group="Plots"
-    //% colours.shadow="lists_create_with"
-    //% colours.defl="colorNumberPicker"
+    //% colour.shadow="colorNumberPicker"
     //% blockHidden=true
     //% inlineInputMode="external"
     export function createPieSeriesOptions(
-        colours?: number[]): PieSeriesOptions {
-        return new PieSeriesOptions(colours);
+        colour?: number): PieSeriesOptions {
+        return new PieSeriesOptions(colour);
     }
 
     // Hist plots ---------------------------
@@ -856,18 +929,18 @@ namespace dataplot {
         /** Convert plot information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string {
+        public create(): any {
             const temp = this.axisoptions;
             const xdata = temp === undefined ? undefined : temp.createX();
             const ydata = temp === undefined ? undefined : temp.createY();
-            return JSON.stringify({
+            return {
                 "type": "config",
                 "graphType": "histogram",
                 "title": this.title,
-                "x": this.axisoptions.createX() || {},
-                "y": this.axisoptions.createY() || {},
+                "x": xdata || defaultX,
+                "y": ydata || defaultY,
                 "series": this.series.map(s => s.create())
-            });
+            };
         }
     }
 
@@ -917,12 +990,12 @@ namespace dataplot {
         s10?: HistSeries
         ): void {
         plot.series = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10].filter(s => !!s);
-        outputData(plot.create());
+        outputData(JSON.stringify(plot.create()));
     }
 
     /**
      * The histogram, uniquely identified by its title.
-     * @param title Title for the bar chart
+     * @param title Title for the histogram
      * @param axops [optional] Data about the axes of the plot
      * @returns Plot object storing the data
      */
@@ -949,15 +1022,15 @@ namespace dataplot {
         /** Convert series information into JSON format recognised by the web app,
          * replacing undefined values with defaults.
          */
-        public create(): string {
+        public create(): any {
             const temp = this.options;
             const colour = temp === undefined ? undefined : temp.colour;
-            return JSON.stringify({
+            return {
                 "x_column": "",
                 "y_column": this.y_column,
                 "color": colour || "",
                 "displayName": this.name || ""
-            })
+            };
         }
     }
 
@@ -968,7 +1041,7 @@ namespace dataplot {
      * @param seriesops [optional] Options to customise how the series is drawn
      * @returns Series object storing the data
      */
-    //% block="histogram series $title|using data from column $column||options|$seriesops"
+    //% block="histogram series named $title|using data from column $column||options|$seriesops"
     //% blockId=dataplotcreatehistseries
     //% group="Plots"
     //% column.shadow=datalogger_columnfield
